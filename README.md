@@ -2,11 +2,11 @@
 
 Android companion app for VESC motor controllers. Connects to a Flipsky FSESC 75200 Pro over Bluetooth Low Energy, reads live telemetry, and provides an RSSI-based anti-distance alarm.
 
-> **Current release:** `v1.0.0` · read-only telemetry companion · Android APK available in [Releases](https://github.com/RuggeroCadamuroITA/VescViewer/releases)
+> **Current release:** `v1.1.0` · read-only telemetry companion · Android APK available in [Releases](https://github.com/RuggeroCadamuroITA/VescViewer/releases)
 
 ## What it does
 
-- Live dashboard for speed, battery voltage, current, power, duty cycle, temperatures, energy counters, distance, and ERPM.
+- Live dashboard for speed, battery voltage, current, power, duty cycle, MOSFET temperature, energy counters, distance, and ERPM.
 - BLE discovery and connection through Nordic UART Service, HM-10-compatible devices, and generic notify/write UART characteristics.
 - Automatic detection of direct VESC and BLE-to-CAN transport paths.
 - RSSI signal indicator and configurable anti-distance alarm with foreground service and siren.
@@ -27,7 +27,7 @@ Other VESC-compatible BLE UART bridges may work when they expose a compatible VE
 ## Install
 
 1. Open the [latest release](https://github.com/RuggeroCadamuroITA/VescViewer/releases/latest).
-2. Download `VescViewer-v1.0.0.apk`.
+2. Download `VescViewer-v1.1.0.apk`.
 3. Allow installation from the browser/file manager when Android asks.
 4. Open the app, grant Bluetooth and notification permissions, then scan for the VESC BLE module.
 
@@ -92,7 +92,7 @@ The telemetry parser supports the modern VESC `COMM_GET_VALUES` response used by
 
 - The alarm foreground service and siren still need full end-to-end validation on additional Android devices.
 - Landscape layout, launcher icon switching, and non-Flipsky bridge variants need broader device testing.
-- The release is a first hardware-focused milestone; the dashboard visual redesign is planned for the next release.
+- The release is a first hardware-focused milestone; the dashboard visual redesign is included in `v1.1.0` and will continue to evolve with hardware feedback.
 
 ## License
 

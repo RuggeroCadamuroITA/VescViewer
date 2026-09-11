@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">VESC Companion</string>
+    <string name="app_name">VescViewer</string>
     <string name="alarm_notification_channel">Allarme anti-allontanamento</string>
     <string name="alarm_notification_channel_desc">Mantiene attivo il monitoraggio RSSI dell\'allarme quando l\'app è in background</string>
     <string name="alarm_notification_title">Monitoraggio anti-allontanamento attivo</string>

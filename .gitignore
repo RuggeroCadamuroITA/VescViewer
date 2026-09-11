@@ -11,10 +11,11 @@
 .cxx
 local.properties
 
-# Local build logs and handoff notes
+# Local build logs, release artifacts, and handoff notes
 build_*.txt
 verify_*.txt
 test_output.txt
+*.apk
 HANDOFF.md
 prompt-*.md
 vescape-dev/

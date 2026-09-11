@@ -4,24 +4,29 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothDisabled
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,8 +38,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -54,12 +62,6 @@ fun hasBlePermissions(context: android.content.Context): Boolean =
             android.content.pm.PackageManager.PERMISSION_GRANTED
     }
 
-/**
- * Schermata di scansione/pairing: elenco live dei dispositivi BLE nelle
- * vicinanze, con i bridge "probabilmente VESC" (NUS, NRF, Flipsky, HM-10)
- * evidenziati in cima. Nessun dispositivo in archivio: la prima connessione
- * parte sempre da qui.
- */
 @Composable
 fun ScanScreen(
     viewModel: ScanViewModel,
@@ -76,91 +78,113 @@ fun ScanScreen(
         if (granted.values.all { it }) viewModel.startScan()
     }
 
-    // avvio automatico: se i permessi ci sono gia', scansiona subito
     LaunchedEffect(Unit) {
         if (hasBlePermissions(context)) viewModel.startScan()
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                if (scanning) Icons.AutoMirrored.Filled.BluetoothSearching else Icons.Filled.Bluetooth,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.width(8.dp))
-            Column {
-                Text("Trova il tuo VESC", style = MaterialTheme.typography.titleLarge)
+            Box(
+                modifier = Modifier.size(46.dp).clip(RoundedCornerShape(15.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (scanning) Icons.AutoMirrored.Filled.BluetoothSearching else Icons.Filled.Bluetooth,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Dispositivi", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(
-                    if (scanning) "Ricerca dispositivi in corso..." else "${devices.size} dispositivi trovati",
+                    if (scanning) "Scansione Bluetooth in corso..." else "${devices.size} dispositivi nelle vicinanze",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        Spacer(Modifier.height(12.dp))
-
         if (!hasBlePermissions(context)) {
-            Card {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Permessi Bluetooth richiesti", style = MaterialTheme.typography.titleMedium)
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Column(Modifier.padding(18.dp)) {
+                    Text("Permessi Bluetooth richiesti", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
-                        "Per cercare e collegare il modulo BLE del VESC serve l'accesso al Bluetooth" +
+                        "Servono per trovare e collegare il modulo BLE del VESC." +
                             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S)
-                            " e alla posizione (richiesto da Android fino alla versione 11 per lo scan BLE)."
-                            else ".",
+                                " Su Android fino alla versione 11 è richiesta anche la posizione."
+                            else "",
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(vertical = 8.dp)
+                        modifier = Modifier.padding(top = 6.dp)
                     )
-                    Button(onClick = { permissionLauncher.launch(blePermissions()) }) {
-                        Text("Concedi i permessi")
-                    }
+                    Button(
+                        onClick = { permissionLauncher.launch(blePermissions()) },
+                        modifier = Modifier.padding(top = 14.dp)
+                    ) { Text("Concedi i permessi") }
                 }
             }
         } else {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 if (scanning) {
-                    OutlinedButton(onClick = { viewModel.stopScan() }) { Text("Ferma ricerca") }
+                    OutlinedButton(onClick = viewModel::stopScan) { Text("Ferma ricerca") }
+                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
                 } else {
-                    Button(onClick = { viewModel.startScan() }) { Text("Cerca di nuovo") }
-                }
-                if (scanning) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.width(24.dp).height(24.dp).align(Alignment.CenterVertically)
-                    )
+                    Button(onClick = viewModel::startScan) { Text("Cerca di nuovo") }
                 }
             }
         }
 
         error?.let {
-            Text(
-                it,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        }
-
-        if (devices.isEmpty() && !scanning && hasBlePermissions(context)) {
-            Row(
-                Modifier.fillMaxWidth().padding(top = 32.dp),
-                horizontalArrangement = Arrangement.Center
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Icon(Icons.Filled.BluetoothDisabled, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    "Nessun dispositivo. Assicurati che il modulo BLE del VESC sia alimentato e in coppia.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
+                Text(it, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(12.dp))
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        if (devices.isEmpty() && !scanning && hasBlePermissions(context)) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(Icons.Filled.BluetoothDisabled, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Nessun dispositivo trovato",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 10.dp)
+                    )
+                    Text(
+                        "Accendi il VESC e chiudi VESC Tool o nRF Connect prima di riprovare.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 5.dp)
+                    )
+                }
+            }
+        }
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             items(devices, key = { it.address }) { device ->
                 DeviceRow(device) { viewModel.connect(device, onDeviceSelected) }
             }
@@ -170,14 +194,30 @@ fun ScanScreen(
 
 @Composable
 private fun DeviceRow(device: BleManager.ScanDevice, onClick: () -> Unit) {
+    val accent = if (device.looksLikeVesc) MaterialTheme.colorScheme.primary
+    else MaterialTheme.colorScheme.onSurfaceVariant
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier.size(40.dp).clip(CircleShape).background(
+                    if (device.looksLikeVesc) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceVariant
+                ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Bluetooth, contentDescription = null, tint = accent, modifier = Modifier.size(21.dp))
+            }
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    device.name ?: "(senza nome)",
+                    device.name ?: "Dispositivo senza nome",
                     style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = if (device.looksLikeVesc) MaterialTheme.colorScheme.primary
@@ -190,11 +230,7 @@ private fun DeviceRow(device: BleManager.ScanDevice, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (device.looksLikeVesc) {
-                    Text(
-                        "Bridge VESC probabile",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Text("Bridge VESC probabile", style = MaterialTheme.typography.labelSmall, color = accent)
                 }
             }
             RssiIndicator(device.rssi)
