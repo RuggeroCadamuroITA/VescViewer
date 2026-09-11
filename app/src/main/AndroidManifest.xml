@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ============================================================
+         Permessi Bluetooth
+         - Android 12+ (API 31+): BLUETOOTH_SCAN / BLUETOOTH_CONNECT.
+           "neverForLocation" dichiara che non usiamo lo scan per
+           derivare la posizione fisica, cosi' non serve la location
+           runtime su Android 12+.
+         - Android 11 e precedenti: serve ACCESS_FINE_LOCATION per
+           fare BLE scan (limitato a maxSdkVersion 30).
+         ============================================================ -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="30" />
+
+    <!-- Notifica persistente del foreground service (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Foreground service per l'allarme anti-allontanamento -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+
+    <!-- Permette di proporre all'utente l'esclusione dall'ottimizzazione batteria -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- Il BLE e' facoltativo: l'app si installa anche su dispositivi senza BLE
+         (sara' inutilizzabile ma senza errori di installazione). -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+
+    <application
+        android:name=".VescCompanionApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MyApplication">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.MyApplication">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- ============================================================
+             Varianti di icona app.
+             Android non permette di cambiare a runtime la risorsa icona
+             di un'activity: la tecnica standard e' dichiarare piu'
+             <activity-alias> con lo stesso intent-filter MAIN/LAUNCHER
+             ma icone diverse, tutti disabilitati tranne quello attivo.
+             A runtime si abilita/disabilita il componente desiderato con
+             PackageManager.setComponentEnabledSetting() (vedi
+             SettingsViewModel.applyIconVariant()). Il launcher aggiorna
+             l'icona dopo pochi secondi / al prossimo refresh.
+             ============================================================ -->
+        <activity-alias
+            android:name=".LauncherAlias1"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_v1"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_v1_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherAlias2"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_v2"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_v2_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Foreground service che mantiene viva la connessione BLE e il
+             monitoraggio RSSI dell'allarme anche a app in background.
+             "connectedDevice" e' il tipo richiesto su Android 14+ (API 34+)
+             quando si parla con dispositivi Bluetooth. -->
+        <service
+            android:name=".service.AlarmForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+    </application>
+
+</manifest>

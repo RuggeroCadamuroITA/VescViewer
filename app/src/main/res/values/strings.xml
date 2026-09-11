@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">VESC Companion</string>
+    <string name="alarm_notification_channel">Allarme anti-allontanamento</string>
+    <string name="alarm_notification_channel_desc">Mantiene attivo il monitoraggio RSSI dell\'allarme quando l\'app è in background</string>
+    <string name="alarm_notification_title">Monitoraggio anti-allontanamento attivo</string>
+    <string name="alarm_notification_text">Connessione BLE al VESC monitorata. Riceverai la sirena se il segnale cala.</string>
+    <string name="alarm_active_title">ALLARME: bici allontanata!</string>
+    <string name="alarm_active_text">Il segnale Bluetooth è sceso sotto la soglia. Tocca per aprire l\'app.</string>
+    <string name="alarm_stop_action">Disattiva</string>
+</resources>
