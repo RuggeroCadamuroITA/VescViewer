@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lingue supportate dall'app: Android 13+ le mostra in
+     Impostazioni di sistema > App > VescViewer > Lingua. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="it" />
+    <locale android:name="en" />
+    <locale android:name="de" />
+    <locale android:name="es" />
+</locale-config>

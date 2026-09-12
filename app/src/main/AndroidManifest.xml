@@ -29,6 +29,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
+    <!-- Wake lock parziale del servizio dell'allarme: tiene la CPU sveglia per
+         il tick RSSI quando lo schermo e' spento. Senza questa dichiarazione
+         PowerManager.WakeLock.acquire() lancia SecurityException e il servizio
+         muore con tutto il processo. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <!-- Permette di proporre all'utente l'esclusione dall'ottimizzazione batteria -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
@@ -39,6 +45,7 @@
     <application
         android:name=".VescCompanionApp"
         android:allowBackup="true"
+        android:localeConfig="@xml/locales_config"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"

@@ -3,8 +3,10 @@ package com.ruggerocadamuro.myapplication.ui.scan
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ruggerocadamuro.myapplication.R
 import com.ruggerocadamuro.myapplication.ServiceLocator
 import com.ruggerocadamuro.myapplication.data.ble.BleManager
+import com.ruggerocadamuro.myapplication.data.settings.AppLocale
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,7 +49,8 @@ class ScanViewModel(app: Application) : AndroidViewModel(app) {
                             .thenByDescending { it.rssi })
                 }
             } catch (e: Exception) {
-                _error.value = e.message ?: "Errore durante la scansione"
+                _error.value = e.message
+                    ?: AppLocale.wrap(getApplication()).getString(R.string.scan_error)
             } finally {
                 _scanning.value = false
             }

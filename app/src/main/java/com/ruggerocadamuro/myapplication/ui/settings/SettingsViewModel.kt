@@ -1,24 +1,23 @@
 package com.ruggerocadamuro.myapplication.ui.settings
 
 import android.app.Application
-import android.content.ComponentName
-import android.content.pm.PackageManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ruggerocadamuro.myapplication.ServiceLocator
+import com.ruggerocadamuro.myapplication.data.settings.AppLanguage
+import com.ruggerocadamuro.myapplication.data.settings.AppLocale
 import com.ruggerocadamuro.myapplication.data.settings.AppSettings
 import com.ruggerocadamuro.myapplication.data.settings.GaugeStyle
-import com.ruggerocadamuro.myapplication.data.settings.IconVariant
 import com.ruggerocadamuro.myapplication.data.settings.SettingsRepository
 import com.ruggerocadamuro.myapplication.data.settings.SpeedUnit
 import com.ruggerocadamuro.myapplication.data.settings.TempUnit
 import com.ruggerocadamuro.myapplication.data.settings.ThemeMode
-import kotlinx.coroutines.Dispatchers
+import com.ruggerocadamuro.myapplication.service.AlarmForegroundService
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * ViewModel delle impostazioni: espone lo snapshot corrente come StateFlow e
@@ -32,6 +31,23 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     val settings: StateFlow<AppSettings> = repo.settings
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
+
+    /**
+     * null finche' DataStore non ha risposto: serve a non mostrare per un
+     * istante il setup guidato a chi l'ha gia' completato.
+     */
+    val setupCompleted: StateFlow<Boolean?> = repo.settings
+        .map { it.setupCompleted }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** Lingua chiara al primo setup guidato: finche' e' null l'app la chiede. */
+    fun setLanguage(language: AppLanguage) {
+        AppLocale.apply(getApplication(), language)
+        viewModelScope.launch { repo.setLanguage(language) }
+    }
+
+    /** Chiude il setup iniziale: l'app parte direttamente sulla dashboard. */
+    fun completeSetup() = viewModelScope.launch { repo.setSetupCompleted(true) }
 
     fun setAccentColor(index: Int) = viewModelScope.launch { repo.setAccentColorIndex(index) }
 
@@ -51,6 +67,16 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setBatteryCells(value: Int) = viewModelScope.launch { repo.setBatteryCells(value) }
 
+    /**
+     * Accende/spegne la protezione anti-allontanamento: avvia (o ferma) il
+     * foreground service che tiene vivo il monitoraggio RSSI a schermo spento
+     * e persiste la scelta, cosi' al prossimo avvio l'app la ripristina.
+     */
+    fun setAlarmEnabled(enabled: Boolean) {
+        AlarmForegroundService.setEnabled(getApplication(), enabled)
+        viewModelScope.launch { repo.setAlarmEnabled(enabled) }
+    }
+
     fun setAlarmThresholdDbm(value: Int) = viewModelScope.launch { repo.setAlarmThresholdDbm(value) }
 
     fun setAlarmDebounceSeconds(value: Int) = viewModelScope.launch { repo.setAlarmDebounceSeconds(value) }
@@ -59,39 +85,4 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setAlarmOnDisconnect(value: Boolean) = viewModelScope.launch { repo.setAlarmOnDisconnect(value) }
 
-    /**
-     * Cambio icona app tramite activity-alias.
-     *
-     * Android non consente di sostituire a runtime la risorsa icona di una
-     * activity: si dichiarano nel Manifest piu' <activity-alias> (uno per
-     * variante, ciascuno con il proprio mipmap) e si abilita/disabilita il
-     * componente corrispondente con PackageManager.setComponentEnabledSetting().
-     * Il launcher aggiorna l'icona dopo qualche secondo (a volte serve un
-     * refresh del launcher). Usiamo DONT_KILL_APP per non interrompere
-     * l'esecuzione corrente.
-     */
-    fun applyIconVariant(variant: IconVariant) {
-        viewModelScope.launch {
-            withContext(Dispatchers.Main) {
-                val context = getApplication<Application>()
-                val pm = context.packageManager
-                val pkg = context.packageName
-
-                fun setState(name: String, enable: Boolean) {
-                    val component = ComponentName(pkg, name)
-                    val desired = if (enable) PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                    else PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-                    pm.setComponentEnabledSetting(
-                        component,
-                        desired,
-                        PackageManager.DONT_KILL_APP
-                    )
-                }
-                setState("$pkg.MainActivity", variant == IconVariant.DEFAULT)
-                setState("$pkg.LauncherAlias1", variant == IconVariant.V1)
-                setState("$pkg.LauncherAlias2", variant == IconVariant.V2)
-                repo.setIconVariant(variant)
-            }
-        }
-    }
 }

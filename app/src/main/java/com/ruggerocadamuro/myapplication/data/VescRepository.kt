@@ -2,8 +2,10 @@ package com.ruggerocadamuro.myapplication.data
 
 import android.content.Context
 import android.util.Log
+import com.ruggerocadamuro.myapplication.R
 import com.ruggerocadamuro.myapplication.data.ble.BleManager
 import com.ruggerocadamuro.myapplication.data.ble.SppManager
+import com.ruggerocadamuro.myapplication.data.settings.AppLocale
 import com.ruggerocadamuro.myapplication.data.settings.AppSettings
 import com.ruggerocadamuro.myapplication.data.settings.SettingsRepository
 import com.ruggerocadamuro.myapplication.data.vesc.VescPacket
@@ -126,6 +128,13 @@ class VescRepository(
     private val _events = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val events: SharedFlow<String> = _events.asSharedFlow()
 
+    /**
+     * I messaggi di questi eventi finiscono nella snackbar: vanno nella lingua
+     * scelta dall'utente, quindi li risolviamo su un Context "avvolto" con
+     * quell'id (il Context del repository e' quello dell'Application).
+     */
+    private fun localized(): Context = AppLocale.wrap(context)
+
     // ----------------------------------------------------------------------
     // Allarme anti-allontanamento
     // ----------------------------------------------------------------------
@@ -151,6 +160,10 @@ class VescRepository(
     @Volatile private var currentSettings: AppSettings = AppSettings()
     @Volatile private var vehicle: VehicleParams = VehicleParams(7, 25.4f, 1f, 10)
     @Volatile private var hasEverConnected = false
+    // True solo per una disconnessione richiesta dall'utente: non va interpretata
+    // come allontanamento, altrimenti l'allarme partirebbe proprio dal pulsante
+    // "Disconnetti".
+    @Volatile private var intentionalDisconnect = false
 
     private var lastConnectedAddress: String? = null
 
@@ -206,6 +219,7 @@ class VescRepository(
     // ----------------------------------------------------------------------
 
     fun connect(address: String, name: String? = null) {
+        intentionalDisconnect = false
         lastConnectedAddress = address
         _telemetry.value = null
         _history.value = emptyList()
@@ -219,6 +233,14 @@ class VescRepository(
     }
 
     fun disconnect() {
+        // Una disconnessione esplicita non e' una perdita del segnale: il
+        // monitoraggio puo' restare armato, ma deve restare silenzioso finche'
+        // l'utente non avvia una nuova connessione.
+        intentionalDisconnect = true
+        _alarmState.value = _alarmState.value.copy(
+            status = if (_alarmState.value.status == AlarmStatus.ALARM) AlarmStatus.MONITORING else _alarmState.value.status,
+            belowSeconds = 0
+        )
         ble.disconnect()
         spp.disconnect()
         pollingJob?.cancel()
@@ -229,14 +251,14 @@ class VescRepository(
     private suspend fun switchToSpp(address: String) {
         _transport.value = Transport.SPP
         ble.disconnect()
-        _events.tryEmit("BLE muto: tento il Bluetooth Classic (SPP)...")
+        _events.tryEmit(localized().getString(R.string.event_switch_to_spp))
         spp.connect(address)
     }
 
     private fun switchToBle(address: String) {
         _transport.value = Transport.BLE
         spp.disconnect()
-        _events.tryEmit("SPP muto: ritento il BLE...")
+        _events.tryEmit(localized().getString(R.string.event_switch_to_ble))
         ble.connect(address)
     }
 
@@ -299,10 +321,7 @@ class VescRepository(
             }
         }
         if (!fwOk) {
-            _events.tryEmit(
-                "Il modulo non risponde nemmeno al ping: chiudi VESC Tool/nRF Connect " +
-                    "(rubano la connessione) e riprova"
-            )
+            _events.tryEmit(localized().getString(R.string.event_module_unresponsive))
             return false
         }
 
@@ -433,7 +452,7 @@ class VescRepository(
                 if (a.status == AlarmStatus.OFF) break
                 // "link perso" conta solo se c'e' mai stato un collegamento:
                 // allarme armato ma mai connesso non deve far scattare la sirena
-                val linkDown = hasEverConnected &&
+                val linkDown = hasEverConnected && !intentionalDisconnect &&
                     ble.state.value != BleManager.ConnectionState.CONNECTED
                 val sample: Int? = ble.rssi.value
 

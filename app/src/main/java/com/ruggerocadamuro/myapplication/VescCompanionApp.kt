@@ -28,5 +28,7 @@ class VescCompanionApp : Application() {
     override fun onCreate() {
         super.onCreate()
         ServiceLocator.init(this)
+        // L'icona dell'app e' fissa: vedi LauncherIcon.
+        LauncherIcon.enforceDefault(this)
     }
 }

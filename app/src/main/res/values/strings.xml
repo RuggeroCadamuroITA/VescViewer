@@ -1,5 +1,156 @@
 <resources>
     <string name="app_name">VescViewer</string>
+
+    <!-- ============================================================
+         Navigazione
+         ============================================================ -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_devices">Dispositivi</string>
+    <string name="nav_settings">Impostazioni</string>
+
+    <!-- ============================================================
+         Stato della connessione
+         ============================================================ -->
+    <string name="state_connected">Connesso</string>
+    <string name="state_connecting">Connessione</string>
+    <string name="state_reconnecting">Riconnessione</string>
+    <string name="state_disconnected">Disconnesso</string>
+    <string name="action_disconnect">Disconnetti</string>
+    <string name="action_reconnect">Riconnetti</string>
+    <string name="action_search">Cerca</string>
+    <string name="action_scan">Scansiona</string>
+    <string name="brand_label">VESCVIEWER</string>
+    <string name="no_device_selected">Nessun dispositivo selezionato</string>
+    <string name="no_device">Nessun dispositivo</string>
+
+    <!-- ============================================================
+         Dashboard
+         ============================================================ -->
+    <string name="live_ride">LIVE RIDE</string>
+    <string name="live_waiting">IN ATTESA</string>
+    <string name="live_data">DATI LIVE</string>
+    <string name="label_battery">BATTERIA</string>
+    <string name="label_power">POTENZA</string>
+    <string name="label_voltage">Tensione</string>
+    <string name="label_pack_voltage">Tensione pack</string>
+    <string name="label_battery_current">Corrente batteria</string>
+    <string name="label_motor_current">Corrente motore</string>
+    <string name="label_duty_cycle">Duty cycle</string>
+    <string name="label_erpm">ERPM</string>
+    <string name="label_ah">Ah</string>
+    <string name="label_wh">Wh</string>
+    <string name="label_distance">Distanza</string>
+    <string name="no_data">Nessun dato</string>
+    <string name="amps_battery">%1$.1f A batteria</string>
+    <string name="battery_config">Configurazione %1$dS</string>
+    <string name="live_metrics_title">Dati in tempo reale</string>
+    <string name="live_metrics_subtitle">Aggiornamento automatico ogni 250 ms</string>
+    <string name="session_summary_title">Riepilogo sessione</string>
+    <string name="session_summary_subtitle">Valori principali</string>
+    <string name="mosfet_title">Temperatura MOSFET</string>
+    <string name="mosfet_title_short">MOSFET</string>
+    <string name="mosfet_subtitle">Protezione controller</string>
+    <string name="temp_waiting">In attesa dei dati</string>
+    <string name="temp_danger">Temperatura alta</string>
+    <string name="temp_warn">Controlla la temperatura</string>
+    <string name="temp_normal">Temperatura nella norma</string>
+    <string name="temp_normal_short">Nella norma</string>
+    <string name="consumption_title">Consumi e distanza</string>
+    <string name="consumption_title_short">Consumi sessione</string>
+    <string name="consumption_subtitle">Dati della sessione</string>
+    <string name="empty_title">Pronto per partire?</string>
+    <string name="empty_text">Collega il modulo Bluetooth del tuo VESC per vedere i dati in tempo reale.</string>
+    <string name="empty_text_landscape">Collega il modulo Bluetooth del tuo VESC per trasformare il telefono in cruscotto.</string>
+    <string name="empty_action">Scansiona dispositivi</string>
+    <string name="history_title">Storico (60 s)</string>
+    <string name="history_power">Potenza</string>
+    <string name="history_rpm">RPM</string>
+    <string name="history_max_watts">max %1$d W</string>
+    <string name="history_max_erpm">max %1$d</string>
+    <string name="history_value_watts">%1$d W</string>
+    <string name="history_value_erpm">%1$d ERPM</string>
+
+    <!-- Unità: i simboli restano invariati in tutte le lingue -->
+    <string name="unit_kmh">km/h</string>
+    <string name="unit_mph">mph</string>
+    <string name="unit_celsius">°C</string>
+    <string name="unit_fahrenheit">°F</string>
+    <string name="unit_km">%.1f km</string>
+    <string name="unit_mi">%.1f mi</string>
+
+    <!-- ============================================================
+         Scansione dispositivi
+         ============================================================ -->
+    <string name="devices_title">Dispositivi</string>
+    <string name="devices_scanning">Scansione Bluetooth in corso…</string>
+    <string name="devices_found">%1$d dispositivi nelle vicinanze</string>
+    <string name="permissions_title">Permessi Bluetooth richiesti</string>
+    <string name="permissions_text">Servono per trovare e collegare il modulo BLE del VESC.</string>
+    <string name="permissions_text_legacy"> Su Android fino alla versione 11 è richiesta anche la posizione.</string>
+    <string name="permissions_action">Concedi i permessi</string>
+    <string name="scan_stop">Ferma ricerca</string>
+    <string name="scan_again">Cerca di nuovo</string>
+    <string name="no_devices_title">Nessun dispositivo trovato</string>
+    <string name="no_devices_text">Accendi il VESC e chiudi VESC Tool o nRF Connect prima di riprovare.</string>
+    <string name="device_unnamed">Dispositivo senza nome</string>
+    <string name="device_vesc">VESC rilevato</string>
+    <string name="rssi_unknown">-- dBm</string>
+    <string name="rssi_value">%1$d dBm</string>
+
+    <!-- ============================================================
+         Impostazioni
+         ============================================================ -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_subtitle">Personalizza la tua esperienza VescViewer</string>
+    <string name="section_language">Lingua</string>
+    <string name="section_language_subtitle">Lingua dell\'interfaccia</string>
+    <string name="setting_language">Lingua dell\'app</string>
+    <string name="setting_language_desc">Il cambio è immediato e non richiede il riavvio.</string>
+    <string name="section_appearance">Aspetto</string>
+    <string name="section_appearance_subtitle">Tema, colori e leggibilità</string>
+    <string name="setting_accent">Colore accento</string>
+    <string name="setting_accent_desc">Scegli un colore riconoscibile per i dati importanti.</string>
+    <string name="accent_auto">Auto</string>
+    <string name="setting_theme">Modalità tema</string>
+    <string name="theme_light">Chiaro</string>
+    <string name="theme_dark">Scuro</string>
+    <string name="theme_system">Sistema</string>
+    <string name="setting_icon_fixed">L\'icona dell\'app è quella ufficiale di VescViewer e non si può cambiare.</string>
+    <string name="setting_gauge">Stile dati</string>
+    <string name="gauge_analog">Analogico</string>
+    <string name="gauge_digital">Digitale</string>
+    <string name="section_units">Unità di misura</string>
+    <string name="section_units_subtitle">Come vuoi leggere i valori</string>
+    <string name="setting_speed_unit">Velocità</string>
+    <string name="setting_temp_unit">Temperatura MOSFET</string>
+    <string name="section_vehicle">Veicolo e batteria</string>
+    <string name="section_vehicle_subtitle">Necessari per velocità, distanza e percentuale</string>
+    <string name="setting_pole_pairs">Coppie polari</string>
+    <string name="setting_wheel_diameter">Diametro ruota</string>
+    <string name="setting_gear_ratio">Rapporto di riduzione</string>
+    <string name="setting_battery_cells">Celle in serie</string>
+    <string name="setting_battery_cells_value">%1$dS</string>
+    <string name="section_security">Sicurezza</string>
+    <string name="section_security_subtitle">Protezione anti-allontanamento Bluetooth</string>
+    <string name="alarm_switch">Protezione anti-allontanamento</string>
+    <string name="alarm_switch_on">Monitoraggio RSSI attivo, anche con schermo spento</string>
+    <string name="alarm_switch_off">Sirena se il segnale BLE resta debole troppo a lungo</string>
+    <string name="setting_rssi_threshold">Soglia RSSI</string>
+    <string name="setting_debounce">Tempo di conferma</string>
+    <string name="seconds_value">%1$d secondi</string>
+    <string name="alarm_autostop">Arresto automatico</string>
+    <string name="alarm_autostop_desc">Ferma la sirena quando il segnale torna normale</string>
+    <string name="alarm_on_disconnect">Allarme alla disconnessione</string>
+    <string name="alarm_on_disconnect_desc">Considera la perdita improvvisa del link come segnale perso</string>
+    <string name="section_background">Affidabilità in background</string>
+    <string name="section_background_subtitle">Mantieni attivo il monitoraggio a schermo spento</string>
+    <string name="background_text">Android può sospendere le app in background. Per mantenere attivo il monitoraggio RSSI, escludi VescViewer dall\'ottimizzazione batteria.</string>
+    <string name="open_battery_settings">Apri impostazioni batteria</string>
+    <string name="settings_footer">VescViewer · telemetria in sola lettura via BLE. Nessun comando di controllo viene inviato al motore.</string>
+
+    <!-- ============================================================
+         Notifica del servizio di allarme
+         ============================================================ -->
     <string name="alarm_notification_channel">Allarme anti-allontanamento</string>
     <string name="alarm_notification_channel_desc">Mantiene attivo il monitoraggio RSSI dell\'allarme quando l\'app è in background</string>
     <string name="alarm_notification_title">Monitoraggio anti-allontanamento attivo</string>
@@ -7,4 +158,47 @@
     <string name="alarm_active_title">ALLARME: bici allontanata!</string>
     <string name="alarm_active_text">Il segnale Bluetooth è sceso sotto la soglia. Tocca per aprire l\'app.</string>
     <string name="alarm_stop_action">Disattiva</string>
+
+    <!-- ============================================================
+         Configurazione iniziale (setup guidato, obbligatorio)
+         ============================================================ -->
+    <string name="setup_loading">Preparazione di VescViewer…</string>
+    <string name="setup_progress">Passaggio %1$d di %2$d</string>
+    <string name="setup_welcome_title">Benvenuto in VescViewer</string>
+    <string name="setup_welcome_thanks">Grazie per aver scaricato l\'app!</string>
+    <string name="setup_welcome_body">VescViewer trasforma il telefono nel cruscotto del tuo VESC: telemetria in tempo reale via Bluetooth Low Energy, in sola lettura. Prima di iniziare sistemiamo insieme le poche impostazioni che servono per farti leggere dati corretti.</string>
+    <string name="setup_welcome_steps">Ti guideremo in 5 passaggi: lingua, aspetto, unità di misura, veicolo e riepilogo. Non si può saltare: al termine l\'app è configurata per te.</string>
+    <string name="setup_github_label">Codice sorgente e aggiornamenti su GitHub</string>
+    <string name="setup_github_author">RuggeroCadamuroITA/VescViewer</string>
+    <string name="setup_start">Inizia la configurazione</string>
+    <string name="setup_language_title">Scegli la lingua</string>
+    <string name="setup_language_desc">L\'interfaccia si aggiorna subito nella lingua che tocchi.</string>
+    <string name="setup_theme_title">Tema e colore accento</string>
+    <string name="setup_theme_desc">Scegli come vuoi vedere l\'app: tocca un tema e un colore accento.</string>
+    <string name="setup_units_title">Unità di misura</string>
+    <string name="setup_units_desc">Come vuoi leggere velocità e temperatura.</string>
+    <string name="setup_vehicle_title">Veicolo e batteria</string>
+    <string name="setup_vehicle_desc">Servono per convertire ERPM in velocità, contare la distanza e calcolare la percentuale di batteria. Se non li conosci lascia i valori predefiniti: potrai cambiarli nelle impostazioni.</string>
+    <string name="setup_vehicle_confirm">Confermo questi valori</string>
+    <string name="setup_summary_title">Tutto pronto</string>
+    <string name="setup_summary_desc">Controlla il riepilogo e inizia: potrai cambiare tutto dalle impostazioni, tranne l\'icona dell\'app che è quella ufficiale di VescViewer.</string>
+    <string name="setup_summary_language">Lingua</string>
+    <string name="setup_summary_theme">Tema</string>
+    <string name="setup_summary_accent">Colore accento</string>
+    <string name="setup_summary_units">Unità</string>
+    <string name="setup_summary_vehicle">Veicolo</string>
+    <string name="setup_summary_vehicle_value">%1$d coppie polari · ruota %2$.1f cm · %3$dS · rapporto %4$.2f</string>
+    <string name="setup_back">Indietro</string>
+    <string name="setup_next">Avanti</string>
+    <string name="setup_finish">Inizia a usare VescViewer</string>
+    <string name="setup_choose_hint">Tocca un\'opzione per continuare</string>
+    <string name="setup_alarm_hint">La protezione anti-allontanamento si attiva dalle impostazioni, quando vuoi.</string>
+
+    <!-- ============================================================
+         Messaggi brevi mostrati all\'utente (snackbar / errori)
+         ============================================================ -->
+    <string name="event_switch_to_spp">BLE muto: tento il Bluetooth Classic (SPP)…</string>
+    <string name="event_switch_to_ble">SPP muto: ritento il BLE…</string>
+    <string name="event_module_unresponsive">Il modulo non risponde nemmeno al ping: chiudi VESC Tool/nRF Connect (rubano la connessione) e riprova.</string>
+    <string name="scan_error">Errore durante la scansione</string>
 </resources>

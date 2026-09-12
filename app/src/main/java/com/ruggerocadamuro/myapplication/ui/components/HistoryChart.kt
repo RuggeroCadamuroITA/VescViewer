@@ -25,13 +25,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ruggerocadamuro.myapplication.R
 import com.ruggerocadamuro.myapplication.data.HistoryPoint
 import kotlin.math.roundToInt
 
-private enum class ChartSeries(val label: String) { POTENZA("Potenza"), RPM("RPM") }
+private enum class ChartSeries(val labelRes: Int) {
+    POTENZA(R.string.history_power),
+    RPM(R.string.history_rpm)
+}
 
 /**
  * Grafico in tempo reale (ultimi 60 s) disegnato su Canvas: nessuna libreria
@@ -41,11 +47,28 @@ private enum class ChartSeries(val label: String) { POTENZA("Potenza"), RPM("RPM
 fun HistoryChart(
     points: List<HistoryPoint>,
     accentColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    chartHeight: Dp = 140.dp
 ) {
     var series by remember { mutableIntStateOf(0) }
     val gridColor = MaterialTheme.colorScheme.surfaceVariant
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val historyTitle = stringResource(R.string.history_title)
+    // Le etichette disegnate sul Canvas (valore corrente e massimo) vanno
+    // risolte qui: dentro il DrawScope non si possono leggere le risorse.
+    val seriesValues = points.map { if (series == 0) it.powerW else it.erpm }
+    val currentValueLabel = seriesValues.lastOrNull()?.let {
+        stringResource(
+            if (series == 0) R.string.history_value_watts else R.string.history_value_erpm,
+            it.roundToInt()
+        )
+    }.orEmpty()
+    val maxValueLabel = seriesValues.maxOrNull()?.let {
+        stringResource(
+            if (series == 0) R.string.history_max_watts else R.string.history_max_erpm,
+            it.roundToInt()
+        )
+    }.orEmpty()
 
     Column(modifier = modifier) {
         Row(
@@ -53,7 +76,7 @@ fun HistoryChart(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "Storico (60 s)",
+                historyTitle,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -64,13 +87,13 @@ fun HistoryChart(
                         selected = series == index,
                         onClick = { series = index },
                         shape = SegmentedButtonDefaults.itemShape(index, ChartSeries.entries.size),
-                        label = { Text(s.label, fontSize = 12.sp) }
+                        label = { Text(stringResource(s.labelRes), fontSize = 12.sp) }
                     )
                 }
             }
         }
 
-        Canvas(modifier = Modifier.fillMaxWidth().height(140.dp)) {
+        Canvas(modifier = Modifier.fillMaxWidth().height(chartHeight)) {
             if (points.size < 2) {
                 drawLine(
                     color = gridColor,
@@ -138,14 +161,13 @@ fun HistoryChart(
                 textSize = 28f
             }
             drawContext.canvas.nativeCanvas.drawText(
-                if (series == 0) "${current.roundToInt()} W" else "${current.roundToInt()} ERPM",
+                currentValueLabel,
                 size.width - 8f,
                 yOf(current) - 8f,
                 labelPaint.apply { textAlign = android.graphics.Paint.Align.RIGHT }
             )
             drawContext.canvas.nativeCanvas.drawText(
-                if (series == 0) "max ${(values.maxOrNull() ?: 0f).roundToInt()} W"
-                else "max ${(values.maxOrNull() ?: 0f).roundToInt()}",
+                maxValueLabel,
                 8f,
                 30f,
                 labelPaint

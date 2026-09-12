@@ -11,8 +11,18 @@ val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
-// ---------------------------------------------------------------------
-// Palette di accento selezionabile dalle impostazioni.
+// Palette Liquid Glass: i colori semantici sono sorgenti di luce dietro il vetro.
+val GlassBackgroundStart = Color(0xFF05050A)
+val GlassBackgroundEnd = Color(0xFF14141C)
+val LightPower = Color(0xFFFF3FA4)
+val LightMotor = Color(0xFFFF9A3D)
+val LightVoltage = Color(0xFFFF7A1A)
+val LightTemperatureOk = Color(0xFF33FF8F)
+val LightTemperatureWarning = Color(0xFFFFD43D)
+val LightTemperatureCritical = Color(0xFFFF4D4D)
+val LightConnection = Color(0xFF34D399)
+
+
 // Per ogni accento esistono le due varianti (chiara per tema scuro,
 // scura per tema chiaro) usate come "primary" del rispettivo scheme.
 // ---------------------------------------------------------------------
@@ -28,6 +38,12 @@ val AccentPalette: List<AccentOption> = listOf(
     AccentOption("Magenta", Color(0xFFFFABF2), Color(0xFF9C27B0)),
     AccentOption("Ciano", Color(0xFF84F1E0), Color(0xFF006B60))
 )
+
+/**
+ * Fondo del badge BLE: chiaro e fisso perche' il glifo nero resti sempre
+ * leggibile, indipendentemente dal tema e dal colore accento scelto.
+ */
+val BleBadgeBackground = Color(0xFFE4E6EB)
 
 /** Soglie di temperatura per la colorazione verde/giallo/rossa. */
 object TempThresholds {

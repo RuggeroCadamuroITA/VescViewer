@@ -1,3 +1,28 @@
+## [1.2.0] - 2026-09-12
+
+### Added
+
+- Guided first-run setup with language, theme, accent color, units, and vehicle configuration steps.
+- Multi-language interface (Italian, English, German, Spanish) selectable from settings and setup.
+- Landscape dashboard: a full cockpit-style layout that fits the screen without scrolling.
+
+### Changed
+
+- Vehicle parameters (pole pairs, wheel diameter, gear ratio, battery cells) are now precise numeric text fields instead of sliders, confirmed with Done or on focus loss, with comma/dot decimal support and range clamping.
+- Applied a reusable "Liquid Glass" surface system: translucent cards with radial glow, rim-light gradient border, and soft shadows across dashboard, scanner, settings, setup, and history.
+- App-wide radial gradient background that adapts to dark and light themes.
+
+### Fixed
+
+- The anti-distance alarm no longer triggers when disconnecting manually; an explicit disconnect keeps the alarm armed but silent until the next connection, while unexpected link loss still raises the alarm.
+
+### Verification
+
+- `:app:testDebugUnitTest` — all tests passed.
+- `:app:assembleDebug` — successful.
+
+[1.2.0]: https://github.com/RuggeroCadamuroITA/VescViewer/releases/tag/v1.2.0
+
 ## [1.1.0] - 2026-09-11
 
 ### Changed

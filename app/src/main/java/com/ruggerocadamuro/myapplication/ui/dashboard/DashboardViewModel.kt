@@ -45,19 +45,11 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     fun disconnect() = repo.disconnect()
 
     /**
-     * Toggle allarme. L'abilitazione avvia prima il foreground service
-     * (serve su Android 12+ per poter acquisire il tipo connectedDevice a
-     * processo vivo in foreground) e poi il monitoraggio nel repository.
+     * Toggle allarme. La logica (foreground service + monitoraggio) e' condivisa
+     * con la schermata impostazioni: qui si limita a persistere la scelta.
      */
     fun setAlarmEnabled(enabled: Boolean) {
-        val context = getApplication<Application>()
-        if (enabled) {
-            AlarmForegroundService.start(context)
-            repo.enableAlarm()
-        } else {
-            repo.disableAlarm()
-            AlarmForegroundService.stop(context)
-        }
+        AlarmForegroundService.setEnabled(getApplication(), enabled)
         viewModelScope.launch { settingsRepo.setAlarmEnabled(enabled) }
     }
 }

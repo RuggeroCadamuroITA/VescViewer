@@ -25,20 +25,15 @@ enum class SpeedUnit { KMH, MPH }
 enum class TempUnit { CELSIUS, FAHRENHEIT }
 
 /**
- * Variante di icona app: DEFAULT = activity principale, V1/V2 = activity-alias
- * abilitati via PackageManager (vedi SettingsViewModel.applyIconVariant).
- */
-enum class IconVariant { DEFAULT, V1, V2 }
-
-/**
  * Snapshot di tutte le impostazioni utente.
  * Persistite in DataStore Preferences, applicate a caldo senza restart.
  */
 data class AppSettings(
+    val language: AppLanguage? = null,       // null = lingua non ancora scelta (setup in corso)
+    val setupCompleted: Boolean = false,     // false = mostra il setup guidato obbligatorio
     val accentColorIndex: Int = -1,          // -1 = colore di default / dinamico
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val gaugeStyle: GaugeStyle = GaugeStyle.ANALOG,
-    val iconVariant: IconVariant = IconVariant.DEFAULT,
     val speedUnit: SpeedUnit = SpeedUnit.KMH,
     val tempUnit: TempUnit = TempUnit.CELSIUS,
     // parametri veicolo (per convertire ERPM -> velocita' e tachimetro -> distanza)
@@ -64,10 +59,11 @@ data class AppSettings(
 class SettingsRepository(private val context: Context) {
 
     private object Keys {
+        val LANGUAGE = stringPreferencesKey("language")
+        val SETUP_COMPLETED = booleanPreferencesKey("setup_completed")
         val ACCENT = intPreferencesKey("accent_color_index")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val GAUGE_STYLE = stringPreferencesKey("gauge_style")
-        val ICON_VARIANT = stringPreferencesKey("icon_variant")
         val SPEED_UNIT = stringPreferencesKey("speed_unit")
         val TEMP_UNIT = stringPreferencesKey("temp_unit")
         val POLE_PAIRS = intPreferencesKey("pole_pairs")
@@ -85,13 +81,13 @@ class SettingsRepository(private val context: Context) {
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { prefs ->
         AppSettings(
+            language = AppLanguage.fromTag(prefs[Keys.LANGUAGE]),
+            setupCompleted = prefs[Keys.SETUP_COMPLETED] ?: false,
             accentColorIndex = prefs[Keys.ACCENT] ?: -1,
             themeMode = prefs[Keys.THEME_MODE]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
                 ?: ThemeMode.SYSTEM,
             gaugeStyle = prefs[Keys.GAUGE_STYLE]?.let { runCatching { GaugeStyle.valueOf(it) }.getOrNull() }
                 ?: GaugeStyle.ANALOG,
-            iconVariant = prefs[Keys.ICON_VARIANT]?.let { runCatching { IconVariant.valueOf(it) }.getOrNull() }
-                ?: IconVariant.DEFAULT,
             speedUnit = prefs[Keys.SPEED_UNIT]?.let { runCatching { SpeedUnit.valueOf(it) }.getOrNull() }
                 ?: SpeedUnit.KMH,
             tempUnit = prefs[Keys.TEMP_UNIT]?.let { runCatching { TempUnit.valueOf(it) }.getOrNull() }
@@ -110,6 +106,19 @@ class SettingsRepository(private val context: Context) {
         )
     }
 
+    /**
+     * Salva la lingua scelta. Oltre a DataStore aggiorna la copia sincrona su
+     * SharedPreferences, che Activity e Service leggono in attachBaseContext.
+     */
+    suspend fun setLanguage(language: AppLanguage) {
+        AppLocale.store(context, language)
+        edit { it[Keys.LANGUAGE] = language.tag }
+    }
+
+    /** Il setup guidato e' stato completato: non va piu' riproposto. */
+    suspend fun setSetupCompleted(completed: Boolean) =
+        edit { it[Keys.SETUP_COMPLETED] = completed }
+
     suspend fun setAccentColorIndex(index: Int) =
         edit { it[Keys.ACCENT] = index }
 
@@ -118,9 +127,6 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setGaugeStyle(style: GaugeStyle) =
         edit { it[Keys.GAUGE_STYLE] = style.name }
-
-    suspend fun setIconVariant(variant: IconVariant) =
-        edit { it[Keys.ICON_VARIANT] = variant.name }
 
     suspend fun setSpeedUnit(unit: SpeedUnit) =
         edit { it[Keys.SPEED_UNIT] = unit.name }

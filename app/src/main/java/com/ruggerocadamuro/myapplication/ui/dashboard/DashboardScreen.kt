@@ -1,9 +1,11 @@
 package com.ruggerocadamuro.myapplication.ui.dashboard
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,21 +23,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,10 +45,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ruggerocadamuro.myapplication.R
 import com.ruggerocadamuro.myapplication.data.VescMath
 import com.ruggerocadamuro.myapplication.data.VescRepository
 import com.ruggerocadamuro.myapplication.data.ble.BleManager
@@ -57,11 +58,16 @@ import com.ruggerocadamuro.myapplication.data.settings.AppSettings
 import com.ruggerocadamuro.myapplication.data.settings.SpeedUnit
 import com.ruggerocadamuro.myapplication.data.settings.TempUnit
 import com.ruggerocadamuro.myapplication.data.vesc.VescTelemetry
+import com.ruggerocadamuro.myapplication.ui.components.BleBadge
 import com.ruggerocadamuro.myapplication.ui.components.ConnectionStateChip
+import com.ruggerocadamuro.myapplication.ui.components.GlassCard
 import com.ruggerocadamuro.myapplication.ui.components.HistoryChart
 import com.ruggerocadamuro.myapplication.ui.components.RssiIndicator
 import com.ruggerocadamuro.myapplication.ui.components.StatCard
 import com.ruggerocadamuro.myapplication.ui.components.tempColor
+import com.ruggerocadamuro.myapplication.ui.theme.LightTemperatureCritical
+import com.ruggerocadamuro.myapplication.ui.theme.LightTemperatureOk
+import com.ruggerocadamuro.myapplication.ui.theme.LightTemperatureWarning
 import com.ruggerocadamuro.myapplication.ui.theme.TempThresholds
 import kotlin.math.abs
 
@@ -98,10 +104,45 @@ fun DashboardScreen(
         }
     }
 
-    val isWide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
+    val isWide = configuration.screenWidthDp >= 600 && !isLandscape
+
+    // ---------------------------------------------------------------
+    // Telefono ruotato: la dashboard non e' una lista che scorre ma una
+    // plancia unica (vedi [LandscapeDashboard]), tutta visibile nello schermo.
+    // ---------------------------------------------------------------
+    if (isLandscape) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            // Gli inset di sistema sono gia' gestiti dallo Scaffold in MainActivity:
+            // riapplicarli qui rubava 48 dp di altezza in orizzontale.
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) }
+        ) { padding ->
+            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                LandscapeDashboard(
+                    state = state,
+                    telemetry = telemetry,
+                    history = history,
+                    rssi = rssi,
+                    deviceName = deviceName,
+                    settings = settings,
+                    onConnect = {
+                        viewModel.connect(settings.lastDeviceAddress, settings.lastDeviceName)
+                    },
+                    onDisconnect = viewModel::disconnect,
+                    onScan = onGoToScan
+                )
+            }
+        }
+        return
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        // Vedi sopra: gli inset arrivano gia' dallo Scaffold esterno.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) }
     ) { padding ->
         LazyColumn(
@@ -137,16 +178,10 @@ fun DashboardScreen(
                     }
                 }
 
-                if (!isWide) {
-                    item {
-                        AlarmCard(alarm, settings) { viewModel.setAlarmEnabled(it) }
-                    }
-                }
-
                 item {
                     SectionHeading(
-                        title = "Dati in tempo reale",
-                        subtitle = "Aggiornamento automatico ogni 250 ms"
+                        title = stringResource(R.string.live_metrics_title),
+                        subtitle = stringResource(R.string.live_metrics_subtitle)
                     )
                 }
                 item { LiveMetricsGrid(telemetry) }
@@ -163,10 +198,6 @@ fun DashboardScreen(
                             ConsumptionCard(telemetry, settings)
                         }
                     }
-                }
-
-                if (isWide) {
-                    item { AlarmCard(alarm, settings) { viewModel.setAlarmEnabled(it) } }
                 }
 
                 item {
@@ -198,40 +229,37 @@ private fun DashboardTopBar(
     onDisconnect: () -> Unit,
     onScan: () -> Unit
 ) {
+    val connectedColor = Color(0xFF35B77A)
+    val warningColor = Color(0xFFE3A63C)
     val (label, color) = when (state) {
-        BleManager.ConnectionState.CONNECTED -> "Connesso" to Color(0xFF35B77A)
-        BleManager.ConnectionState.CONNECTING -> "Connessione" to Color(0xFFE3A63C)
-        BleManager.ConnectionState.RECONNECTING -> "Riconnessione" to Color(0xFFE3A63C)
-        BleManager.ConnectionState.DISCONNECTED -> "Disconnesso" to MaterialTheme.colorScheme.error
+        BleManager.ConnectionState.CONNECTED ->
+            stringResource(R.string.state_connected) to connectedColor
+        BleManager.ConnectionState.CONNECTING ->
+            stringResource(R.string.state_connecting) to warningColor
+        BleManager.ConnectionState.RECONNECTING ->
+            stringResource(R.string.state_reconnecting) to warningColor
+        BleManager.ConnectionState.DISCONNECTED ->
+            stringResource(R.string.state_disconnected) to MaterialTheme.colorScheme.error
     }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = if (state == BleManager.ConnectionState.CONNECTED) Icons.Filled.Bluetooth
-                else Icons.Filled.Speed,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
+        // Badge BLE (runa + "LE"): resta sempre leggibile, lo stato del link lo
+        // racconta gia' il chip "Connesso/Disconnesso" qui sotto.
+        BleBadge()
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                text = "VESCVIEWER",
+                text = stringResource(R.string.brand_label),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.4.sp
             )
             Text(
-                text = deviceName ?: "Nessun dispositivo selezionato",
+                text = deviceName ?: stringResource(R.string.no_device_selected),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -245,20 +273,20 @@ private fun DashboardTopBar(
         }
         when (state) {
             BleManager.ConnectionState.CONNECTED -> OutlinedButton(onClick = onDisconnect) {
-                Text("Disconnetti")
+                Text(stringResource(R.string.action_disconnect))
             }
             else -> {
                 if (hasLastDevice) {
                     OutlinedButton(onClick = onConnect) {
                         Icon(Icons.Filled.Refresh, contentDescription = null)
                         Spacer(Modifier.width(5.dp))
-                        Text("Riconnetti")
+                        Text(stringResource(R.string.action_reconnect))
                     }
                 } else {
                     Button(onClick = onScan) {
                         Icon(Icons.Filled.Search, contentDescription = null)
                         Spacer(Modifier.width(5.dp))
-                        Text("Cerca")
+                        Text(stringResource(R.string.action_search))
                     }
                 }
             }
@@ -268,10 +296,9 @@ private fun DashboardTopBar(
 
 @Composable
 private fun EmptyState(onGoToScan: () -> Unit) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        glowColor = MaterialTheme.colorScheme.primary
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(28.dp),
@@ -282,21 +309,23 @@ private fun EmptyState(onGoToScan: () -> Unit) {
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
+                // Il glifo deve usare l'"on" del contenitore: un accento chiaro
+                // su primaryContainer chiaro spariva del tutto.
                 Icon(
                     Icons.Filled.Bluetooth,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.size(36.dp)
                 )
             }
             Text(
-                "Pronto per partire?",
+                stringResource(R.string.empty_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 18.dp)
             )
             Text(
-                "Collega il modulo Bluetooth del tuo VESC per vedere i dati in tempo reale.",
+                stringResource(R.string.empty_text),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),
@@ -305,7 +334,7 @@ private fun EmptyState(onGoToScan: () -> Unit) {
             Button(onClick = onGoToScan, modifier = Modifier.padding(top = 20.dp)) {
                 Icon(Icons.Filled.Search, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Scansiona dispositivi")
+                Text(stringResource(R.string.empty_action))
             }
         }
     }
@@ -320,22 +349,27 @@ private fun SpeedHero(
     val vehicle = VehicleFor(settings)
     val speedKmh = telemetry?.let { VescMath.speedKmh(it, vehicle) }
     val speed = speedKmh?.let { if (settings.speedUnit == SpeedUnit.MPH) it * 0.621371f else it }
-    val speedUnit = if (settings.speedUnit == SpeedUnit.MPH) "mph" else "km/h"
+    val speedUnit = stringResource(
+        if (settings.speedUnit == SpeedUnit.MPH) R.string.unit_mph else R.string.unit_kmh
+    )
     val voltage = telemetry?.voltage
     val batteryPct = telemetry?.let { VescMath.batteryPercent(it.voltage, settings.batteryCells) }
     val batteryColor = batteryColor(batteryPct)
 
-    Card(
+    // La card era costruita su `primaryContainer`: con un accento chiaro il
+    // contenitore diventava chiaro mentre testi e unita' restavano tinte da
+    // "onSurfaceVariant" (chiaro su chiaro) e la card sembrava sbiadita.
+    // Ora usa surface + accento, quindi ogni testo ha sempre il suo contrasto.
+    GlassCard(
         modifier = modifier,
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        glowColor = MaterialTheme.colorScheme.primary
     ) {
         Box(
             modifier = Modifier.fillMaxWidth().background(
                 Brush.linearGradient(
                     listOf(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                        Color.Transparent
                     )
                 )
             )
@@ -343,7 +377,7 @@ private fun SpeedHero(
             Column(Modifier.padding(22.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "LIVE RIDE",
+                        stringResource(R.string.live_ride),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
@@ -352,12 +386,14 @@ private fun SpeedHero(
                     Spacer(Modifier.weight(1f))
                     Surface(
                         shape = RoundedCornerShape(50),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                     ) {
                         Text(
-                            if (telemetry == null) "IN ATTESA" else "DATI LIVE",
+                            stringResource(
+                                if (telemetry == null) R.string.live_waiting else R.string.live_data
+                            ),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                         )
@@ -372,7 +408,7 @@ private fun SpeedHero(
                         fontSize = 68.sp,
                         lineHeight = 72.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         speedUnit,
@@ -386,16 +422,19 @@ private fun SpeedHero(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     HeroStat(
-                        label = "BATTERIA",
+                        label = stringResource(R.string.label_battery),
                         value = batteryPct?.let { "$it%" } ?: "—",
-                        detail = voltage?.let { "%.1f V".format(it) } ?: "Nessun dato",
+                        detail = voltage?.let { "%.1f V".format(it) }
+                            ?: stringResource(R.string.no_data),
                         color = batteryColor,
                         modifier = Modifier.weight(1f)
                     )
                     HeroStat(
-                        label = "POTENZA",
+                        label = stringResource(R.string.label_power),
                         value = telemetry?.powerW?.let { "${it.toInt()} W" } ?: "—",
-                        detail = telemetry?.currentBattery?.let { "%.1f A batteria".format(it) } ?: "Nessun dato",
+                        detail = telemetry?.currentBattery?.let {
+                            stringResource(R.string.amps_battery, it)
+                        } ?: stringResource(R.string.no_data),
                         color = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.weight(1f)
                     )
@@ -411,19 +450,33 @@ private fun SessionSummary(
     settings: AppSettings,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    GlassCard(
         modifier = modifier,
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        glowColor = MaterialTheme.colorScheme.primary
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            SectionHeading("Riepilogo sessione", "Valori principali")
-            SummaryLine("Tensione pack", telemetry?.voltage?.let { "%.1f V".format(it) } ?: "—")
-            SummaryLine("Corrente batteria", telemetry?.currentBattery?.let { "%.1f A".format(it) } ?: "—")
-            SummaryLine("ERPM", telemetry?.erpm?.let { "%.0f".format(it) } ?: "—")
-            SummaryLine("Duty cycle", telemetry?.dutyCyclePercent?.let { "%.1f%%".format(it) } ?: "—")
+            SectionHeading(
+                stringResource(R.string.session_summary_title),
+                stringResource(R.string.session_summary_subtitle)
+            )
+            SummaryLine(
+                stringResource(R.string.label_pack_voltage),
+                telemetry?.voltage?.let { "%.1f V".format(it) } ?: "—"
+            )
+            SummaryLine(
+                stringResource(R.string.label_battery_current),
+                telemetry?.currentBattery?.let { "%.1f A".format(it) } ?: "—"
+            )
+            SummaryLine(
+                stringResource(R.string.label_erpm),
+                telemetry?.erpm?.let { "%.0f".format(it) } ?: "—"
+            )
+            SummaryLine(
+                stringResource(R.string.label_duty_cycle),
+                telemetry?.dutyCyclePercent?.let { "%.1f%%".format(it) } ?: "—"
+            )
             Text(
-                "Configurazione ${settings.batteryCells}S",
+                stringResource(R.string.battery_config, settings.batteryCells),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -441,7 +494,7 @@ private fun HeroStat(
 ) {
     Column(
         modifier = modifier.clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.62f))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
             .padding(12.dp)
     ) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -455,14 +508,14 @@ private fun LiveMetricsGrid(telemetry: VescTelemetry?) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             MetricCard(
-                "Tensione",
+                stringResource(R.string.label_voltage),
                 telemetry?.voltage?.let { "%.1f".format(it) } ?: "—",
                 "V",
                 MaterialTheme.colorScheme.primary,
                 Modifier.weight(1f)
             )
             MetricCard(
-                "Potenza",
+                stringResource(R.string.label_power),
                 telemetry?.powerW?.let { "%.0f".format(it) } ?: "—",
                 "W",
                 MaterialTheme.colorScheme.tertiary,
@@ -471,14 +524,14 @@ private fun LiveMetricsGrid(telemetry: VescTelemetry?) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             MetricCard(
-                "Corrente motore",
+                stringResource(R.string.label_motor_current),
                 telemetry?.currentMotor?.let { "%.1f".format(it) } ?: "—",
                 "A",
                 MaterialTheme.colorScheme.secondary,
                 Modifier.weight(1f)
             )
             MetricCard(
-                "Duty cycle",
+                stringResource(R.string.label_duty_cycle),
                 telemetry?.dutyCyclePercent?.let { "%.1f".format(it) } ?: "—",
                 "%",
                 MaterialTheme.colorScheme.primary,
@@ -496,10 +549,9 @@ private fun MetricCard(
     accent: Color,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    GlassCard(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        glowColor = accent
     ) {
         Column(Modifier.padding(16.dp)) {
             Box(
@@ -542,20 +594,24 @@ private fun MosfetCard(
         TempThresholds.MOSFET_WARN,
         TempThresholds.MOSFET_DANGER
     )
-    val status = when {
-        tempC == null -> "In attesa dei dati"
-        tempC >= TempThresholds.MOSFET_DANGER -> "Temperatura alta"
-        tempC >= TempThresholds.MOSFET_WARN -> "Controlla la temperatura"
-        else -> "Temperatura nella norma"
-    }
+    val status = stringResource(
+        when {
+            tempC == null -> R.string.temp_waiting
+            tempC >= TempThresholds.MOSFET_DANGER -> R.string.temp_danger
+            tempC >= TempThresholds.MOSFET_WARN -> R.string.temp_warn
+            else -> R.string.temp_normal
+        }
+    )
 
-    Card(
+    GlassCard(
         modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        glowColor = color
     ) {
         Column(Modifier.padding(18.dp)) {
-            SectionHeading("Temperatura MOSFET", "Protezione controller")
+            SectionHeading(
+                stringResource(R.string.mosfet_title),
+                stringResource(R.string.mosfet_subtitle)
+            )
             Row(
                 modifier = Modifier.padding(top = 14.dp),
                 verticalAlignment = Alignment.Bottom
@@ -592,24 +648,34 @@ private fun ConsumptionCard(
 ) {
     val distanceKm = telemetry?.let { VescMath.distanceKm(it, VehicleFor(settings)) }
     val distance = distanceKm?.let {
-        if (settings.speedUnit == SpeedUnit.MPH) "%.1f mi".format(it * 0.621371f)
-        else "%.1f km".format(it)
+        if (settings.speedUnit == SpeedUnit.MPH) stringResource(R.string.unit_mi, it * 0.621371f)
+        else stringResource(R.string.unit_km, it)
     } ?: "—"
 
-    Card(
+    GlassCard(
         modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        glowColor = MaterialTheme.colorScheme.primary
     ) {
         Column(Modifier.padding(18.dp)) {
-            SectionHeading("Consumi e distanza", "Dati della sessione")
+            SectionHeading(
+                stringResource(R.string.consumption_title),
+                stringResource(R.string.consumption_subtitle)
+            )
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                ConsumptionValue("Ah", telemetry?.ampHoursConsumed?.let { "%.2f".format(it) } ?: "—", Modifier.weight(1f))
-                ConsumptionValue("Wh", telemetry?.wattHoursConsumed?.let { "%.0f".format(it) } ?: "—", Modifier.weight(1f))
-                ConsumptionValue("Distanza", distance, Modifier.weight(1f))
+                ConsumptionValue(
+                    stringResource(R.string.label_ah),
+                    telemetry?.ampHoursConsumed?.let { "%.2f".format(it) } ?: "—",
+                    Modifier.weight(1f)
+                )
+                ConsumptionValue(
+                    stringResource(R.string.label_wh),
+                    telemetry?.wattHoursConsumed?.let { "%.0f".format(it) } ?: "—",
+                    Modifier.weight(1f)
+                )
+                ConsumptionValue(stringResource(R.string.label_distance), distance, Modifier.weight(1f))
             }
         }
     }
@@ -645,85 +711,11 @@ private fun SummaryLine(label: String, value: String) {
     }
 }
 
-@Composable
-private fun AlarmCard(
-    alarm: VescRepository.AlarmUiState,
-    settings: AppSettings,
-    onToggle: (Boolean) -> Unit
-) {
-    val enabled = alarm.status != VescRepository.AlarmStatus.OFF
-    val isAlarm = alarm.status == VescRepository.AlarmStatus.ALARM
-    val container = if (isAlarm) MaterialTheme.colorScheme.errorContainer
-    else MaterialTheme.colorScheme.surface
-    val accent = if (isAlarm) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-
-    Card(
-        colors = CardDefaults.cardColors(containerColor = container),
-        shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.size(42.dp).clip(CircleShape).background(accent.copy(alpha = 0.14f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Filled.NotificationsActive, contentDescription = null, tint = accent)
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("Anti-allontanamento", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        when (alarm.status) {
-                            VescRepository.AlarmStatus.OFF -> "Protezione disattivata"
-                            VescRepository.AlarmStatus.MONITORING -> "Monitoraggio attivo · ${alarm.thresholdDbm} dBm"
-                            VescRepository.AlarmStatus.ALARM -> "ALLARME ATTIVO"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = accent
-                    )
-                }
-                Switch(checked = enabled, onCheckedChange = onToggle)
-            }
-            HorizontalDivider(Modifier.padding(vertical = 14.dp))
-            if (enabled) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RssiIndicator(alarm.rssi)
-                    Spacer(Modifier.weight(1f))
-                    Text(
-                        "${alarm.marginDb} dB",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = accent
-                    )
-                }
-                Text(
-                    if (alarm.belowSeconds > 0) {
-                        "Segnale debole da ${alarm.belowSeconds}s · conferma a ${alarm.debounceSeconds}s"
-                    } else {
-                        "Margine rispetto alla soglia configurata"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            } else {
-                Text(
-                    "Attiva la protezione per ricevere una sirena se il segnale BLE resta sotto " +
-                        "${settings.alarmThresholdDbm} dBm per ${settings.alarmDebounceSeconds}s.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
 private fun batteryColor(percent: Int?): Color = when {
     percent == null -> Color(0xFF7C8794)
-    percent <= 15 -> Color(0xFFE05252)
-    percent <= 30 -> Color(0xFFE3A63C)
-    else -> Color(0xFF35B77A)
+    percent <= 15 -> LightTemperatureCritical
+    percent <= 30 -> LightTemperatureWarning
+    else -> LightTemperatureOk
 }
 
 private fun VehicleFor(settings: AppSettings) = com.ruggerocadamuro.myapplication.data.VehicleParams(

@@ -10,12 +10,14 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.PowerManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.ruggerocadamuro.myapplication.MainActivity
 import com.ruggerocadamuro.myapplication.R
 import com.ruggerocadamuro.myapplication.ServiceLocator
 import com.ruggerocadamuro.myapplication.data.VescRepository
+import com.ruggerocadamuro.myapplication.data.settings.AppLocale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -42,6 +44,7 @@ class AlarmForegroundService : Service() {
         private const val CHANNEL_ID = "alarm_monitor"
         private const val NOTIF_ID = 42
         private const val WAKELOCK_TAG = "vesc:alarm_monitor"
+        private const val TAG = "AlarmService"
 
         /** Avvio comodo dal resto dell'app. */
         fun start(context: Context) {
@@ -53,6 +56,31 @@ class AlarmForegroundService : Service() {
             val intent = Intent(context, AlarmForegroundService::class.java).setAction(ACTION_STOP)
             context.startService(intent)
         }
+
+        /**
+         * Unico ingresso per accendere/spegnere la protezione: avvia o ferma il
+         * foreground service (necessario su Android 12+ per il tipo
+         * connectedDevice) e attiva/disattiva il monitoraggio nel repository.
+         * Usato sia dalla dashboard sia dalle impostazioni.
+         */
+        fun setEnabled(context: Context, enabled: Boolean) {
+            if (enabled) {
+                start(context)
+                ServiceLocator.vescRepository.enableAlarm()
+            } else {
+                ServiceLocator.vescRepository.disableAlarm()
+                stop(context)
+            }
+        }
+    }
+
+    /**
+     * Anche la notifica persistente deve usare la lingua scelta dall'utente:
+     * il Service non eredita la Configuration dell'Activity, quindi la
+     * applichiamo qui al suo Context.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLocale.wrap(newBase))
     }
 
     private val repo: VescRepository by lazy { ServiceLocator.vescRepository }
@@ -86,12 +114,19 @@ class AlarmForegroundService : Service() {
         // wake lock parziale: mantiene la CPU viva per il tick RSSI a schermo spento.
         // L'utente deve comunque escludere l'app dall'ottimizzazione batteria
         // (vedi schermata impostazioni) per affidabilita' massima.
+        // L'acquisizione e' protetta: se il permesso WAKE_LOCK manca (installazioni
+        // precedenti alla dichiarazione nel manifest) il monitoraggio deve
+        // continuare lo stesso, non far crashare il processo.
         if (wakeLock == null) {
-            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKELOCK_TAG).apply {
-                setReferenceCounted(false)
-                acquire()
-            }
+            wakeLock = runCatching {
+                val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKELOCK_TAG).apply {
+                    setReferenceCounted(false)
+                    acquire()
+                }
+            }.onFailure {
+                Log.w(TAG, "Wake lock non acquisibile: monitoraggio senza CPU wake lock", it)
+            }.getOrNull()
         }
 
         if (collectJob?.isActive == true) return
