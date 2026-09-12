@@ -1,3 +1,19 @@
+## [1.3.0] - 2026-09-12
+
+### Fixed
+
+- PIN setup now validates before saving, warns the user that a restart is required, then saves the PIN securely and restarts VescViewer into the biometric/PIN lock screen.
+- Moved PIN hashing and verification off the main thread to keep the setup responsive.
+- Fixed the runtime permission request crash caused by invalid ActivityResult request codes.
+- Added the wheel diameter unit directly to the vehicle setup label (`cm`).
+
+### Verification
+
+- `:app:testDebugUnitTest` — all tests passed.
+- `:app:assembleDebug` — successful.
+
+[1.3.0]: https://github.com/RuggeroCadamuroITA/VescViewer/releases/tag/v1.3.0
+
 ## [1.2.0] - 2026-09-12
 
 ### Added

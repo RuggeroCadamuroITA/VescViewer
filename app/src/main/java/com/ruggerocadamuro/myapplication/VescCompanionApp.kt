@@ -2,6 +2,9 @@ package com.ruggerocadamuro.myapplication
 
 import android.app.Application
 import com.ruggerocadamuro.myapplication.data.VescRepository
+import com.ruggerocadamuro.myapplication.data.database.VescDatabase
+import com.ruggerocadamuro.myapplication.data.security.AuthManager
+import com.ruggerocadamuro.myapplication.data.security.AuthRepository
 import com.ruggerocadamuro.myapplication.data.settings.SettingsRepository
 
 /**
@@ -13,9 +16,15 @@ object ServiceLocator {
         private set
     lateinit var vescRepository: VescRepository
         private set
+    lateinit var database: VescDatabase
+        private set
+    lateinit var authManager: AuthManager
+        private set
 
     fun init(context: Application) {
         settingsRepository = SettingsRepository(context)
+        database = VescDatabase.get(context)
+        authManager = AuthManager(AuthRepository(context))
         vescRepository = VescRepository(context, settingsRepository)
     }
 }

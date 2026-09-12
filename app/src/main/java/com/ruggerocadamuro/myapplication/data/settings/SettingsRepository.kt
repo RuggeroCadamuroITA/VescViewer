@@ -47,6 +47,15 @@ data class AppSettings(
     val alarmDebounceSeconds: Int = 5,       // secondi consecutivi sotto soglia
     val alarmAutoStopOnReturn: Boolean = true,
     val alarmOnDisconnect: Boolean = true,   // tratta la disconnessione improvvisa come allarme
+    // avvisi telemetria
+    val lowBatteryAlertEnabled: Boolean = true,
+    val lowBatteryAlertPercent: Int = 20,
+    val highTemperatureAlertEnabled: Boolean = true,
+    val highTemperatureAlertC: Float = 75f,
+    val highCurrentAlertEnabled: Boolean = false,
+    val highCurrentAlertA: Float = 80f,
+    val lowVoltageAlertEnabled: Boolean = false,
+    val lowVoltageAlertV: Float = 30f,
     // ultimo dispositivo collegato (per la riconnessione rapida)
     val lastDeviceAddress: String = "",
     val lastDeviceName: String = ""
@@ -75,6 +84,14 @@ class SettingsRepository(private val context: Context) {
         val ALARM_DEBOUNCE = intPreferencesKey("alarm_debounce_seconds")
         val ALARM_AUTOSTOP = booleanPreferencesKey("alarm_autostop_on_return")
         val ALARM_ON_DISCONNECT = booleanPreferencesKey("alarm_on_disconnect")
+        val LOW_BATTERY_ALERT_ENABLED = booleanPreferencesKey("low_battery_alert_enabled")
+        val LOW_BATTERY_ALERT_PERCENT = intPreferencesKey("low_battery_alert_percent")
+        val HIGH_TEMPERATURE_ALERT_ENABLED = booleanPreferencesKey("high_temperature_alert_enabled")
+        val HIGH_TEMPERATURE_ALERT_C = floatPreferencesKey("high_temperature_alert_c")
+        val HIGH_CURRENT_ALERT_ENABLED = booleanPreferencesKey("high_current_alert_enabled")
+        val HIGH_CURRENT_ALERT_A = floatPreferencesKey("high_current_alert_a")
+        val LOW_VOLTAGE_ALERT_ENABLED = booleanPreferencesKey("low_voltage_alert_enabled")
+        val LOW_VOLTAGE_ALERT_V = floatPreferencesKey("low_voltage_alert_v")
         val LAST_DEVICE_ADDRESS = stringPreferencesKey("last_device_address")
         val LAST_DEVICE_NAME = stringPreferencesKey("last_device_name")
     }
@@ -101,6 +118,14 @@ class SettingsRepository(private val context: Context) {
             alarmDebounceSeconds = (prefs[Keys.ALARM_DEBOUNCE] ?: 5).coerceIn(1, 60),
             alarmAutoStopOnReturn = prefs[Keys.ALARM_AUTOSTOP] ?: true,
             alarmOnDisconnect = prefs[Keys.ALARM_ON_DISCONNECT] ?: true,
+            lowBatteryAlertEnabled = prefs[Keys.LOW_BATTERY_ALERT_ENABLED] ?: true,
+            lowBatteryAlertPercent = (prefs[Keys.LOW_BATTERY_ALERT_PERCENT] ?: 20).coerceIn(1, 50),
+            highTemperatureAlertEnabled = prefs[Keys.HIGH_TEMPERATURE_ALERT_ENABLED] ?: true,
+            highTemperatureAlertC = (prefs[Keys.HIGH_TEMPERATURE_ALERT_C] ?: 75f).coerceIn(40f, 120f),
+            highCurrentAlertEnabled = prefs[Keys.HIGH_CURRENT_ALERT_ENABLED] ?: false,
+            highCurrentAlertA = (prefs[Keys.HIGH_CURRENT_ALERT_A] ?: 80f).coerceIn(1f, 500f),
+            lowVoltageAlertEnabled = prefs[Keys.LOW_VOLTAGE_ALERT_ENABLED] ?: false,
+            lowVoltageAlertV = (prefs[Keys.LOW_VOLTAGE_ALERT_V] ?: 30f).coerceIn(1f, 100f),
             lastDeviceAddress = prefs[Keys.LAST_DEVICE_ADDRESS] ?: "",
             lastDeviceName = prefs[Keys.LAST_DEVICE_NAME] ?: ""
         )
@@ -160,6 +185,15 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setAlarmOnDisconnect(value: Boolean) =
         edit { it[Keys.ALARM_ON_DISCONNECT] = value }
+
+    suspend fun setLowBatteryAlertEnabled(value: Boolean) = edit { it[Keys.LOW_BATTERY_ALERT_ENABLED] = value }
+    suspend fun setLowBatteryAlertPercent(value: Int) = edit { it[Keys.LOW_BATTERY_ALERT_PERCENT] = value.coerceIn(1, 50) }
+    suspend fun setHighTemperatureAlertEnabled(value: Boolean) = edit { it[Keys.HIGH_TEMPERATURE_ALERT_ENABLED] = value }
+    suspend fun setHighTemperatureAlertC(value: Float) = edit { it[Keys.HIGH_TEMPERATURE_ALERT_C] = value.coerceIn(40f, 120f) }
+    suspend fun setHighCurrentAlertEnabled(value: Boolean) = edit { it[Keys.HIGH_CURRENT_ALERT_ENABLED] = value }
+    suspend fun setHighCurrentAlertA(value: Float) = edit { it[Keys.HIGH_CURRENT_ALERT_A] = value.coerceIn(1f, 500f) }
+    suspend fun setLowVoltageAlertEnabled(value: Boolean) = edit { it[Keys.LOW_VOLTAGE_ALERT_ENABLED] = value }
+    suspend fun setLowVoltageAlertV(value: Float) = edit { it[Keys.LOW_VOLTAGE_ALERT_V] = value.coerceIn(1f, 100f) }
 
     suspend fun setLastDevice(address: String, name: String) = edit {
         it[Keys.LAST_DEVICE_ADDRESS] = address

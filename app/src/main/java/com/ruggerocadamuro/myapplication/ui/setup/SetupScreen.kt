@@ -67,14 +67,15 @@ import com.ruggerocadamuro.myapplication.ui.theme.AccentPalette
 private const val GITHUB_URL = "https://github.com/RuggeroCadamuroITA/VescViewer"
 
 /** Passaggi configurabili (il benvenuto non conta e non ha indicatore). */
-private const val CONFIG_STEPS = 5
+private const val CONFIG_STEPS = 6
 
 private const val STEP_WELCOME = 0
 private const val STEP_LANGUAGE = 1
 private const val STEP_THEME = 2
 private const val STEP_UNITS = 3
 private const val STEP_VEHICLE = 4
-private const val STEP_SUMMARY = 5
+private const val STEP_ALERTS = 5
+private const val STEP_SUMMARY = 6
 
 /**
  * Setup guidato del primo avvio.
@@ -97,6 +98,7 @@ fun SetupScreen(viewModel: SettingsViewModel) {
     var speedPicked by rememberSaveable { mutableStateOf(false) }
     var tempPicked by rememberSaveable { mutableStateOf(false) }
     var vehicleConfirmed by rememberSaveable { mutableStateOf(false) }
+    var alertsConfirmed by rememberSaveable { mutableStateOf(false) }
 
     // Il tasto indietro torna al passaggio precedente, non esce dal setup.
     BackHandler(enabled = step > STEP_WELCOME) { step-- }
@@ -107,6 +109,7 @@ fun SetupScreen(viewModel: SettingsViewModel) {
         STEP_THEME -> themePicked && accentPicked
         STEP_UNITS -> speedPicked && tempPicked
         STEP_VEHICLE -> vehicleConfirmed
+        STEP_ALERTS -> alertsConfirmed
         else -> true
     }
 
@@ -156,6 +159,14 @@ fun SetupScreen(viewModel: SettingsViewModel) {
                         onWheel = viewModel::setWheelDiameterCm,
                         onGear = viewModel::setGearRatio,
                         onCells = viewModel::setBatteryCells
+                    )
+
+                    STEP_ALERTS -> AlertsStep(
+                        settings = settings,
+                        confirmed = alertsConfirmed,
+                        onConfirm = { alertsConfirmed = !alertsConfirmed },
+                        onLowBattery = viewModel::setLowBatteryAlertEnabled,
+                        onTemperature = viewModel::setHighTemperatureAlertEnabled
                     )
 
                     else -> SummaryStep(settings)
@@ -491,7 +502,44 @@ private fun VehicleStep(
 }
 
 /* ------------------------------------------------------------------ */
-/* Passaggio 5: riepilogo                                             */
+/* Passaggio 5: avvisi                                                */
+/* ------------------------------------------------------------------ */
+
+@Composable
+private fun AlertsStep(
+    settings: AppSettings,
+    confirmed: Boolean,
+    onConfirm: () -> Unit,
+    onLowBattery: (Boolean) -> Unit,
+    onTemperature: (Boolean) -> Unit
+) {
+    SetupStepTitle(
+        title = "Avvisi di sicurezza",
+        description = "Ricevi un avviso quando batteria o temperatura superano una soglia importante. Potrai modificare tutto nelle impostazioni."
+    )
+    ChoiceCard(
+        label = "Batteria bassa (%d%%)".format(settings.lowBatteryAlertPercent),
+        selected = settings.lowBatteryAlertEnabled,
+        onClick = { onLowBattery(!settings.lowBatteryAlertEnabled) },
+        modifier = Modifier.fillMaxWidth()
+    )
+    ChoiceCard(
+        label = "Temperatura MOSFET alta (%.0f°C)".format(settings.highTemperatureAlertC),
+        selected = settings.highTemperatureAlertEnabled,
+        onClick = { onTemperature(!settings.highTemperatureAlertEnabled) },
+        modifier = Modifier.fillMaxWidth()
+    )
+    ChoiceCard(
+        label = "Confermo le impostazioni degli avvisi",
+        selected = confirmed,
+        onClick = onConfirm,
+        modifier = Modifier.fillMaxWidth()
+    )
+    if (!confirmed) StepHint("Tocca la conferma per continuare")
+}
+
+/* ------------------------------------------------------------------ */
+/* Passaggio 6: riepilogo                                             */
 /* ------------------------------------------------------------------ */
 
 @Composable

@@ -110,7 +110,7 @@
     <string name="section_vehicle">Vehículo y batería</string>
     <string name="section_vehicle_subtitle">Necesarios para velocidad, distancia y porcentaje</string>
     <string name="setting_pole_pairs">Pares de polos</string>
-    <string name="setting_wheel_diameter">Diámetro de rueda</string>
+    <string name="setting_wheel_diameter">Diámetro de rueda (cm)</string>
     <string name="setting_gear_ratio">Relación de reducción</string>
     <string name="setting_battery_cells">Celdas en serie</string>
     <string name="setting_battery_cells_value">%1$dS</string>
@@ -145,7 +145,7 @@
     <string name="setup_welcome_title">Bienvenido a VescViewer</string>
     <string name="setup_welcome_thanks">¡Gracias por descargar la app!</string>
     <string name="setup_welcome_body">VescViewer convierte tu móvil en el cuadro de mandos de tu VESC: telemetría en tiempo real por Bluetooth Low Energy, solo lectura. Antes de empezar vamos a configurar juntos los pocos ajustes necesarios para leer datos correctos.</string>
-    <string name="setup_welcome_steps">Cinco pasos: idioma, aspecto, unidades, vehículo y resumen. No se puede saltar: al final la app queda configurada para ti.</string>
+    <string name="setup_welcome_steps">Seis pasos: idioma, aspecto, unidades, vehículo, avisos y resumen. No se puede saltar: al final la app queda configurada para ti.</string>
     <string name="setup_github_label">Código fuente y actualizaciones en GitHub</string>
     <string name="setup_github_author">RuggeroCadamuroITA/VescViewer</string>
     <string name="setup_start">Empezar la configuración</string>

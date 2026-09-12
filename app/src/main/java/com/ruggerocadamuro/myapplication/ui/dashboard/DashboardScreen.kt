@@ -65,6 +65,8 @@ import com.ruggerocadamuro.myapplication.ui.components.HistoryChart
 import com.ruggerocadamuro.myapplication.ui.components.RssiIndicator
 import com.ruggerocadamuro.myapplication.ui.components.StatCard
 import com.ruggerocadamuro.myapplication.ui.components.tempColor
+import com.ruggerocadamuro.myapplication.ui.recording.RecordingControls
+import com.ruggerocadamuro.myapplication.ui.recording.RecordingViewModel
 import com.ruggerocadamuro.myapplication.ui.theme.LightTemperatureCritical
 import com.ruggerocadamuro.myapplication.ui.theme.LightTemperatureOk
 import com.ruggerocadamuro.myapplication.ui.theme.LightTemperatureWarning
@@ -79,7 +81,8 @@ import kotlin.math.abs
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel,
-    onGoToScan: () -> Unit
+    onGoToScan: () -> Unit,
+    recordingViewModel: RecordingViewModel
 ) {
     val state by viewModel.connectionState.collectAsState()
     val telemetry by viewModel.telemetry.collectAsState()
@@ -88,6 +91,7 @@ fun DashboardScreen(
     val deviceName by viewModel.deviceName.collectAsState()
     val alarm by viewModel.alarmState.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    val recording by recordingViewModel.state.collectAsState()
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
 
     LaunchedEffect(Unit) {
@@ -150,6 +154,19 @@ fun DashboardScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            item {
+                RecordingControls(
+                    active = recording.active,
+                    paused = recording.paused,
+                    pointsSaved = recording.pointsSaved,
+                    distanceM = recording.distanceM,
+                    onStart = recordingViewModel::start,
+                    onPause = recordingViewModel::pause,
+                    onResume = recordingViewModel::resume,
+                    onStop = recordingViewModel::stop
+                )
+            }
+
             item {
                 DashboardTopBar(
                     state = state,

@@ -302,6 +302,17 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         }
 
         SettingsSection(
+            title = "Avvisi telemetria",
+            subtitle = "Soglie configurabili per batteria, temperatura e corrente",
+            icon = Icons.Filled.NotificationsActive
+        ) {
+            SwitchSetting("Batteria bassa", "Avvisa sotto ${settings.lowBatteryAlertPercent}%", settings.lowBatteryAlertEnabled, viewModel::setLowBatteryAlertEnabled)
+            SwitchSetting("Temperatura MOSFET", "Avvisa sopra %.0f°C".format(settings.highTemperatureAlertC), settings.highTemperatureAlertEnabled, viewModel::setHighTemperatureAlertEnabled)
+            SwitchSetting("Corrente elevata", "Avvisa sopra %.0f A".format(settings.highCurrentAlertA), settings.highCurrentAlertEnabled, viewModel::setHighCurrentAlertEnabled)
+            SwitchSetting("Tensione bassa", "Avvisa sotto %.1f V".format(settings.lowVoltageAlertV), settings.lowVoltageAlertEnabled, viewModel::setLowVoltageAlertEnabled)
+        }
+
+        SettingsSection(
             title = stringResource(R.string.section_background),
             subtitle = stringResource(R.string.section_background_subtitle),
             icon = Icons.Filled.Security

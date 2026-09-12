@@ -84,5 +84,13 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setAlarmAutoStop(value: Boolean) = viewModelScope.launch { repo.setAlarmAutoStopOnReturn(value) }
 
     fun setAlarmOnDisconnect(value: Boolean) = viewModelScope.launch { repo.setAlarmOnDisconnect(value) }
+    fun setLowBatteryAlertEnabled(value: Boolean) = viewModelScope.launch { repo.setLowBatteryAlertEnabled(value) }
+    fun setLowBatteryAlertPercent(value: Int) = viewModelScope.launch { repo.setLowBatteryAlertPercent(value) }
+    fun setHighTemperatureAlertEnabled(value: Boolean) = viewModelScope.launch { repo.setHighTemperatureAlertEnabled(value) }
+    fun setHighTemperatureAlertC(value: Float) = viewModelScope.launch { repo.setHighTemperatureAlertC(value) }
+    fun setHighCurrentAlertEnabled(value: Boolean) = viewModelScope.launch { repo.setHighCurrentAlertEnabled(value) }
+    fun setHighCurrentAlertA(value: Float) = viewModelScope.launch { repo.setHighCurrentAlertA(value) }
+    fun setLowVoltageAlertEnabled(value: Boolean) = viewModelScope.launch { repo.setLowVoltageAlertEnabled(value) }
+    fun setLowVoltageAlertV(value: Float) = viewModelScope.launch { repo.setLowVoltageAlertV(value) }
 
 }

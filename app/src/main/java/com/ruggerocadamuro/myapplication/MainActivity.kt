@@ -5,11 +5,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,10 +48,14 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ruggerocadamuro.myapplication.data.settings.AppLocale
+import com.ruggerocadamuro.myapplication.ui.auth.AuthScreen
 import com.ruggerocadamuro.myapplication.ui.components.BleGlyph
 import com.ruggerocadamuro.myapplication.ui.dashboard.DashboardScreen
 import com.ruggerocadamuro.myapplication.ui.dashboard.DashboardViewModel
+import com.ruggerocadamuro.myapplication.ui.history.HistoryScreen
+import com.ruggerocadamuro.myapplication.ui.map.RideMapScreen
 import com.ruggerocadamuro.myapplication.ui.scan.ScanScreen
+import com.ruggerocadamuro.myapplication.ui.recording.RecordingViewModel
 import com.ruggerocadamuro.myapplication.ui.scan.ScanViewModel
 import com.ruggerocadamuro.myapplication.ui.scan.blePermissions
 import com.ruggerocadamuro.myapplication.ui.settings.SettingsScreen
@@ -59,7 +63,7 @@ import com.ruggerocadamuro.myapplication.ui.settings.SettingsViewModel
 import com.ruggerocadamuro.myapplication.ui.setup.SetupScreen
 import com.ruggerocadamuro.myapplication.ui.theme.MyApplicationTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     /**
      * Prima ancora di creare la UI il Context viene avvolto con la lingua
@@ -77,16 +81,25 @@ class MainActivity : ComponentActivity() {
             val settingsViewModel: SettingsViewModel = viewModel()
             val settings by settingsViewModel.settings.collectAsState()
             val setupCompleted by settingsViewModel.setupCompleted.collectAsState()
+            val authUnlocked by ServiceLocator.authManager.unlocked.collectAsState()
             MyApplicationTheme(
                 themeMode = settings.themeMode,
                 accentColorIndex = settings.accentColorIndex
             ) {
-                when (setupCompleted) {
+                when {
                     // DataStore non ha ancora risposto: meglio un istante di
                     // attesa che far lampeggiare il setup a chi l'ha gia' fatto.
-                    null -> SetupLoading()
-                    false -> SetupScreen(settingsViewModel)
-                    true -> MainApp()
+                    setupCompleted == null -> SetupLoading()
+                    setupCompleted == false -> SetupScreen(settingsViewModel)
+                    !ServiceLocator.authManager.hasPin() -> AuthScreen(
+                        setupMode = true,
+                        onAuthenticated = { }
+                    )
+                    !authUnlocked -> AuthScreen(
+                        setupMode = false,
+                        onAuthenticated = { }
+                    )
+                    else -> MainApp()
                 }
             }
         }
@@ -105,7 +118,9 @@ private fun SetupLoading() {
 }
 
 /** Navigazione interna a 3 schede (stato semplice, nessuna libreria extra). */
-private enum class Tab { DASHBOARD, SCAN, SETTINGS }
+private enum class Tab { DASHBOARD, SCAN, HISTORY, SETTINGS }
+
+private const val PERMISSIONS_REQUEST_CODE = 4201
 
 @Composable
 private fun MainApp() {
@@ -114,6 +129,8 @@ private fun MainApp() {
     val dashboardViewModel: DashboardViewModel = viewModel()
     val scanViewModel: ScanViewModel = viewModel()
     val settingsViewModel: SettingsViewModel = viewModel()
+    val recordingViewModel: RecordingViewModel = viewModel()
+    var mapSessionId by remember { mutableStateOf<Long?>(null) }
 
     // ---------------------------------------------------------------
     // Permessi runtime:
@@ -122,35 +139,44 @@ private fun MainApp() {
     //  - Android 13+ (API 33+): POST_NOTIFICATIONS per la notifica del
     //    foreground service dell'allarme
     // ---------------------------------------------------------------
-    val blePermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { }
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { }
-
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        val missingBle = blePermissions().filter {
+        // Request permissions through FragmentActivity with a fixed request code.
+        // ActivityResultRegistry can generate a request code outside the 16-bit
+        // range expected by FragmentActivity on some AndroidX combinations.
+        val requested = buildList {
+            addAll(blePermissions().toList())
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            add(Manifest.permission.ACCESS_COARSE_LOCATION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }.distinct().filter {
             ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
         }
-        if (missingBle.isNotEmpty()) {
-            blePermissionLauncher.launch(missingBle.toTypedArray())
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        if (requested.isNotEmpty() && context is MainActivity) {
+            context.requestPermissions(requested.toTypedArray(), PERMISSIONS_REQUEST_CODE)
         }
     }
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
 
-    val screen: @Composable () -> Unit = {
+    val screen: @Composable () -> Unit = screen@{
+        if (mapSessionId != null) {
+            RideMapScreen(
+                sessionId = mapSessionId!!,
+                onBack = { mapSessionId = null }
+            )
+            return@screen
+        }
         when (Tab.entries[tab]) {
-            Tab.DASHBOARD -> DashboardScreen(dashboardViewModel, onGoToScan = { tab = Tab.SCAN.ordinal })
+            Tab.DASHBOARD -> DashboardScreen(
+                dashboardViewModel,
+                onGoToScan = { tab = Tab.SCAN.ordinal },
+                recordingViewModel = recordingViewModel
+            )
             Tab.SCAN -> ScanScreen(scanViewModel, onDeviceSelected = { tab = Tab.DASHBOARD.ordinal })
+            Tab.HISTORY -> HistoryScreen(onOpenMap = { mapSessionId = it })
             Tab.SETTINGS -> SettingsScreen(settingsViewModel)
         }
     }
@@ -185,6 +211,13 @@ private fun MainApp() {
                         )
                         Spacer(Modifier.weight(1f))
                         NavigationRailItem(
+                            selected = tab == Tab.HISTORY.ordinal,
+                            onClick = { tab = Tab.HISTORY.ordinal },
+                            icon = { Icon(Icons.Filled.History, contentDescription = null) },
+                            label = { Text("Uscite") }
+                        )
+                        Spacer(Modifier.weight(1f))
+                        NavigationRailItem(
                             selected = tab == Tab.SETTINGS.ordinal,
                             onClick = { tab = Tab.SETTINGS.ordinal },
                             icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
@@ -213,6 +246,12 @@ private fun MainApp() {
                         onClick = { tab = Tab.SCAN.ordinal },
                         icon = { BleGlyph(iconSize = 20.dp, labelSize = 8.sp) },
                         label = { Text(stringResource(R.string.nav_devices)) }
+                    )
+                    NavigationBarItem(
+                        selected = tab == Tab.HISTORY.ordinal,
+                        onClick = { tab = Tab.HISTORY.ordinal },
+                        icon = { Icon(Icons.Filled.History, contentDescription = null) },
+                        label = { Text("Uscite") }
                     )
                     NavigationBarItem(
                         selected = tab == Tab.SETTINGS.ordinal,
