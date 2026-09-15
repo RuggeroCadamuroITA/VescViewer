@@ -1,54 +1,49 @@
 package com.ruggerocadamuro.myapplication.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import com.ruggerocadamuro.myapplication.R
 
-// Colori del template originale
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+/** Core palette for the Telemetry Cockpit visual language. */
+val Obsidian = Color(0xFF07080C)
+val ObsidianElevated = Color(0xFF11131A)
+val ObsidianSurface = Color(0xFF171922)
+val ObsidianSurfaceVariant = Color(0xFF252733)
+val CockpitCoral = Color(0xFFFFA987)
+val CockpitCoralDark = Color(0xFFC65D42)
+val CockpitMint = Color(0xFF7DE2BF)
+val CockpitSky = Color(0xFF8FD2FF)
+val CockpitRed = Color(0xFFFF716D)
+val CockpitText = Color(0xFFF6F3F0)
+val CockpitTextMuted = Color(0xFFB8B6C0)
+val CockpitOutline = Color(0xFF555663)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
-
-// Palette Liquid Glass: i colori semantici sono sorgenti di luce dietro il vetro.
-val GlassBackgroundStart = Color(0xFF05050A)
-val GlassBackgroundEnd = Color(0xFF14141C)
-val LightPower = Color(0xFFFF3FA4)
-val LightMotor = Color(0xFFFF9A3D)
-val LightVoltage = Color(0xFFFF7A1A)
-val LightTemperatureOk = Color(0xFF33FF8F)
-val LightTemperatureWarning = Color(0xFFFFD43D)
-val LightTemperatureCritical = Color(0xFFFF4D4D)
-val LightConnection = Color(0xFF34D399)
-
-
-// Per ogni accento esistono le due varianti (chiara per tema scuro,
-// scura per tema chiaro) usate come "primary" del rispettivo scheme.
-// ---------------------------------------------------------------------
-data class AccentOption(val label: String, val dark: Color, val light: Color)
-
-val AccentPalette: List<AccentOption> = listOf(
-    AccentOption("Viola", Color(0xFFD0BCFF), Color(0xFF6650a4)),
-    AccentOption("Verde VESC", Color(0xFF80D6B5), Color(0xFF006963)),
-    AccentOption("Azzurro", Color(0xFF9CCFFF), Color(0xFF006494)),
-    AccentOption("Arancio", Color(0xFFFFB68F), Color(0xFFBF3600)),
-    AccentOption("Rosso", Color(0xFFFFB4AB), Color(0xFFBA1A1A)),
-    AccentOption("Giallo", Color(0xFFE9C419), Color(0xFF6D4E00)),
-    AccentOption("Magenta", Color(0xFFFFABF2), Color(0xFF9C27B0)),
-    AccentOption("Ciano", Color(0xFF84F1E0), Color(0xFF006B60))
-)
+// Semantic colours are deliberately independent from the selected accent.
+val LightTemperatureOk = Color(0xFF45C992)
+val LightTemperatureWarning = Color(0xFFFFC857)
+val LightTemperatureCritical = Color(0xFFFF716D)
 
 /**
- * Fondo del badge BLE: chiaro e fisso perche' il glifo nero resti sempre
- * leggibile, indipendentemente dal tema e dal colore accento scelto.
+ * The accent palette remains user-selectable, but all options are tuned for
+ * readable telemetry instead of decorative gradients.
  */
-val BleBadgeBackground = Color(0xFFE4E6EB)
+data class AccentOption(val labelRes: Int, val dark: Color, val light: Color)
 
-/** Soglie di temperatura per la colorazione verde/giallo/rossa. */
+val AccentPalette: List<AccentOption> = listOf(
+    AccentOption(R.string.accent_purple, Color(0xFFD0BCFF), Color(0xFF6750A4)),
+    AccentOption(R.string.accent_vesc_green, Color(0xFF7DE2BF), Color(0xFF006B5B)),
+    AccentOption(R.string.accent_blue, Color(0xFF8FD2FF), Color(0xFF006493)),
+    AccentOption(R.string.accent_coral, CockpitCoral, CockpitCoralDark),
+    AccentOption(R.string.accent_red, Color(0xFFFFB4AB), Color(0xFFBA1A1A)),
+    AccentOption(R.string.accent_yellow, Color(0xFFFFC857), Color(0xFF795900)),
+    AccentOption(R.string.accent_magenta, Color(0xFFFFABF2), Color(0xFF9C278F)),
+    AccentOption(R.string.accent_cyan, Color(0xFF84F1E0), Color(0xFF006B60))
+)
+
+/** BLE badge background: keeps the Bluetooth glyph legible in both themes. */
+val BleBadgeBackground = Color(0xFFE6E8ED)
+
+/** MOSFET thresholds used by the dashboard and map inspector. */
 object TempThresholds {
-    const val MOSFET_WARN = 55f   // gradi C
+    const val MOSFET_WARN = 55f
     const val MOSFET_DANGER = 75f
-    const val MOTOR_WARN = 60f
-    const val MOTOR_DANGER = 85f
 }

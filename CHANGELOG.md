@@ -1,4 +1,24 @@
-## [1.3.0] - 2026-09-12
+## [1.3.0] - 2026-09-14
+
+### Fixed
+
+- Enforced PIN background relock with a configurable timeout and added bounded PIN retry backoff (5 attempts, then 5-minute lockout).
+- Excluded ride history and PIN metadata from Android cloud backup and device transfer.
+- Removed unsupported Bluetooth Classic/SPP code and documented BLE-only support.
+- Replaced destructive Room migration fallback with exported schema policy, serialized ride recording, checkpoints, and incomplete-session reconciliation.
+- Added lifecycle-aware Compose collection, saved tab/map state, location quality states, offline map indication, and separate alarm notification channels.
+- Added debounced telemetry threshold alerts with localized events and notification delivery.
+- Corrected map unit conversion and high-latitude nearest-point selection; disclosed voltage-based battery percentage as an estimate.
+
+### Verification
+
+- `:app:lintDebug` — passed with no errors.
+- `:app:testDebugUnitTest` — passed, including telemetry alerts, PIN timeout/rate-limit, recording math, map selection, and VESC protocol regressions.
+- `:app:assembleRelease` — passed with R8/resource shrinking; unsigned locally unless CI signing variables are supplied.
+- Added `.github/workflows/android.yml` for the repeatable lint/test/release quality gate.
+
+[1.3.0]: https://github.com/RuggeroCadamuroITA/VescViewer/releases/tag/v1.3.0
+
 
 ### Fixed
 

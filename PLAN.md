@@ -1,8 +1,24 @@
 # VescViewer — Feature and Redesign Plan
 
-## Goal
+## Design audit and visual direction
 
-Evolve VescViewer from a live VESC telemetry viewer into a complete ride recorder and analysis dashboard with OpenStreetMap route playback, point-level telemetry inspection, configurable alerts, biometric/PIN protection, editable dashboards, light/dark Liquid Glass styling, and custom motion design.
+The audit found a functional telemetry app with a useful glass-card foundation, but the visual language was inconsistent: generic Material containers were mixed with glass surfaces, navigation felt detached from the content, labels and hard-coded copy were unevenly localized, and live values changed without a clear motion hierarchy. The selected direction is **Telemetry Cockpit**: a premium technical instrument panel with an obsidian base, warm coral accent, mint/sky semantic signals, compact data typography, restrained translucent surfaces, and motion reserved for state changes and live telemetry.
+
+The redesign principles are:
+
+- speed and connection state lead every live screen;
+- telemetry values use strong numeric hierarchy and semantic colour, never colour alone;
+- glass is an elevation system, not decoration on every element;
+- navigation is transparent and visually subordinate to the cockpit;
+- setup, authentication, scanner, history, map, settings, portrait, and landscape share the same tokens;
+- reduced-motion-friendly transitions and accessible touch targets are preferred over continuous effects.
+
+## Implementation status (2026-09-13)
+
+Completed in the current working tree: shared Telemetry Cockpit colour/type tokens, animated Liquid Glass surfaces and buttons, animated navigation transitions, redesigned authentication gate, setup transitions and action rail, scanner, ride controls, ride archive, OpenStreetMap inspector with live point selection fix, dashboard chart surface, and gauge surface integration. Existing BLE, Room, recording, alarm, PIN, biometric, setup, and telemetry logic was preserved.
+
+Remaining product work is intentionally outside this visual pass: full dashboard drag-and-drop editor, complete alert delivery channels, CSV/JSON export, expanded localization for newly introduced copy, and physical-device visual smoke testing with GPS, BLE, background services, and biometric hardware.
+
 
 ## Approved decisions
 

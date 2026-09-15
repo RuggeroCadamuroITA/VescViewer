@@ -2,12 +2,12 @@
 
 Android companion app for VESC motor controllers. Connects to a Flipsky FSESC 75200 Pro over Bluetooth Low Energy, reads live telemetry, and provides an RSSI-based anti-distance alarm.
 
-> **Current release:** `v1.1.0` · read-only telemetry companion · Android APK available in [Releases](https://github.com/RuggeroCadamuroITA/VescViewer/releases)
+> **Current release:** `v1.3.0` · read-only telemetry companion · Android APK available in [Releases](https://github.com/RuggeroCadamuroITA/VescViewer/releases)
 
 ## What it does
 
 - Live dashboard for speed, battery voltage, current, power, duty cycle, MOSFET temperature, energy counters, distance, and ERPM.
-- BLE discovery and connection through Nordic UART Service, HM-10-compatible devices, and generic notify/write UART characteristics.
+- BLE discovery and connection through Nordic UART Service, HM-10-compatible devices, and generic notify/write UART characteristics. Bluetooth Classic/SPP is not supported.
 - Automatic detection of direct VESC and BLE-to-CAN transport paths.
 - RSSI signal indicator and configurable anti-distance alarm with foreground service and siren.
 - Light/dark/system theme, accent palette, analog/digital gauges, km/h or mph, and °C or °F.
@@ -27,11 +27,11 @@ Other VESC-compatible BLE UART bridges may work when they expose a compatible VE
 ## Install
 
 1. Open the [latest release](https://github.com/RuggeroCadamuroITA/VescViewer/releases/latest).
-2. Download `VescViewer-v1.1.0.apk`.
+2. Download the `VescViewer` release APK for the version you want.
 3. Allow installation from the browser/file manager when Android asks.
 4. Open the app, grant Bluetooth and notification permissions, then scan for the VESC BLE module.
 
-The app is currently distributed as a debug-signed APK for personal testing. Android may show a warning because it is not distributed through Google Play.
+The app is currently distributed as a debug-signed APK for personal testing. Production release signing is intentionally supplied by CI/environment variables and no keystore credentials are committed to the repository.
 
 ## First connection
 
@@ -48,7 +48,7 @@ Only one BLE client should be connected to the module at a time.
 Requirements:
 
 - Android Studio with Android SDK 37.0 installed
-- JDK 25 (the Gradle daemon uses the configured JVM toolchain 21)
+- JDK 21 (the Gradle daemon toolchain is pinned to 21)
 - Windows: `gradlew.bat`; macOS/Linux: `./gradlew`
 
 ```bash
@@ -57,6 +57,9 @@ Requirements:
 
 # Debug APK
 ./gradlew :app:assembleDebug
+
+# Release APK/AAB (requires a configured Android signing environment for production output)
+./gradlew :app:assembleRelease
 ```
 
 The APK is generated at:
@@ -92,9 +95,15 @@ The telemetry parser supports the modern VESC `COMM_GET_VALUES` response used by
 
 - The alarm foreground service and siren still need full end-to-end validation on additional Android devices.
 - Landscape layout, launcher icon switching, and non-Flipsky bridge variants need broader device testing.
-- The release is a first hardware-focused milestone; the dashboard visual redesign is included in `v1.1.0` and will continue to evolve with hardware feedback.
+- The release is a hardware-focused milestone; the dashboard visual redesign is included in `v1.3.0` and will continue to evolve with hardware feedback.
 
-## License
+## Data and privacy
+
+Ride history contains location, timestamps, and VESC telemetry and is stored locally in the app database. It is not uploaded to a server and is excluded from Android cloud backup and device-transfer rules, as is the local PIN verifier. Settings that do not contain ride or authentication data may be transferred by Android. The app currently provides no cloud sharing or analytics service; delete local rides from the archive when they are no longer needed.
+
+## Release validation
+
+Before publishing, run the device/accessibility/privacy/profiling matrix in [RELEASE_VALIDATION.md](RELEASE_VALIDATION.md). Local lint, tests, and release assembly do not validate BLE hardware, GPS, Android foreground-service restrictions, process death, backup behavior, TalkBack, or OEM battery policies.
 
 VescViewer is released under the [MIT License](LICENSE).
 
