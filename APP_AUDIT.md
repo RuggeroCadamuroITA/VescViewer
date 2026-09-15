@@ -46,6 +46,7 @@
 | A-033 | LOW | Compatibility | `VescDatabase.kt`, `Theme.kt` | Deprecated APIs produce release warnings | LOW |
 | A-034 | LOW | Documentation | `README.md`, `app/build.gradle.kts` | README version/build claims do not match the current Gradle version | LOW |
 | A-035 | INFO | Security | Whole project | No network API, cloud account, API key, or motor-control command was found | — |
+| A-036 | MEDIUM | Security / Technical debt | `AuthRepository.kt` | PIN verifier is not device-bound through Android Keystore *(OPEN; not planned)* | MEDIUM |
 
 ## Priority matrix
 
@@ -1151,6 +1152,28 @@ Phase 1 is complete for these three findings. No Phase 2 implementation was star
 **Dependencies:** A-011  
 **Related issues:** A-032
 
+### A-036 PIN verifier migration to Android Keystore remains open
+
+**Status:** **OPEN — NOT PLANNED**
+
+**Priority:** MEDIUM
+
+**Category:** Security / Technical debt
+
+**Confidence:** MEDIUM
+
+**Location:** `app/src/main/java/com/ruggerocadamuro/myapplication/data/security/AuthRepository.kt`; `AuthManager.kt`; `AuthScreen.kt`
+
+**Problem:** The current PIN verifier uses PBKDF2-HMAC-SHA256 with a random salt in private `SharedPreferences`, but it is not wrapped or bound to an Android Keystore key. This is an explicit future security task; no Keystore implementation is included in the current publication cycle.
+
+**Estimated complexity:** MEDIUM.
+
+**Likely files involved:** `AuthRepository.kt`, `AuthManager.kt`, `AuthScreen.kt`, security unit/instrumentation tests, and potentially a small Keystore adapter under `data/security/`. Backup-rule documentation would need review if the persisted format changes.
+
+**Migration risk:** MEDIUM. Existing PBKDF2 salt/hash records cannot be read by a Keystore-only format unless the app performs a one-time authenticated upgrade after a successful PIN verification. Devices restored without the original Keystore key require a controlled re-enrollment path; the app must not silently accept or discard an unverifiable verifier.
+
+**Decision:** Keep this ID OPEN and **not planned**. Before scheduling it, define device-loss/reset policy, migration UX, supported API behavior, recovery semantics, and Android instrumentation coverage.
+
 # 9. Security Audit
 
 ## Findings
@@ -1613,4 +1636,4 @@ This is an estimate only; no Keystore code or PIN storage behavior was changed i
 - **Complexity:** MEDIUM. The cryptographic primitive can remain PBKDF2, but key generation, authenticated encryption/wrapping, API/device capability handling, and lifecycle/error states need a focused security implementation and tests.
 - **Files likely involved:** `data/security/AuthRepository.kt`, `data/security/AuthManager.kt`, `ui/auth/AuthScreen.kt`, security-focused unit/instrumentation tests, and possibly a small new Keystore adapter under `data/security/`. Backup-rule documentation would also need review if the stored format changes.
 - **Migration risk for existing PINs:** MEDIUM. Existing PBKDF2 salt/hash records cannot be read by a new Keystore-only format unless the app performs a one-time authenticated upgrade after a successful PIN verification. Devices restored without the original Keystore key must fall back to a controlled re-enrollment path; the app must never silently accept or discard an unverifiable verifier.
-- **Recommendation:** Do not implement during release closure. Track the work as a future security follow-up to A-026 (or a new audit ID when the scope is approved); define the device-loss/reset policy, migration UX, supported API behavior, and recovery semantics first, then add device/instrumentation coverage.
+- **Recommendation:** This estimate is tracked explicitly as **A-036 — OPEN, NOT PLANNED**. Do not implement during release closure; define the device-loss/reset policy, migration UX, supported API behavior, and recovery semantics first, then add device/instrumentation coverage.
