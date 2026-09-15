@@ -25,19 +25,12 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,7 +45,10 @@ import com.ruggerocadamuro.myapplication.data.settings.SpeedUnit
 import com.ruggerocadamuro.myapplication.data.settings.TempUnit
 import com.ruggerocadamuro.myapplication.data.settings.ThemeMode
 import com.ruggerocadamuro.myapplication.ui.components.AccentColorChooser
+import com.ruggerocadamuro.myapplication.ui.components.GlassButton
 import com.ruggerocadamuro.myapplication.ui.components.GlassCard
+import com.ruggerocadamuro.myapplication.ui.components.GlassChoiceRow
+import com.ruggerocadamuro.myapplication.ui.components.GlassSwitch
 import com.ruggerocadamuro.myapplication.ui.components.LanguageChooser
 import com.ruggerocadamuro.myapplication.ui.components.NumericSetting
 import com.ruggerocadamuro.myapplication.ui.components.SliderSetting
@@ -60,7 +56,7 @@ import com.ruggerocadamuro.myapplication.ui.components.rememberLanguageApplier
 
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
-    val settings by viewModel.settings.collectAsState()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val applyLanguage = rememberLanguageApplier { viewModel.setLanguage(it) }
 
@@ -131,42 +127,27 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 modifier = Modifier.padding(top = 6.dp)
             )
             SettingLabel(stringResource(R.string.setting_theme))
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                ThemeMode.entries.forEachIndexed { index, mode ->
-                    SegmentedButton(
-                        selected = settings.themeMode == mode,
-                        onClick = { viewModel.setThemeMode(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size)
-                    ) {
-                        Text(
-                            stringResource(
-                                when (mode) {
-                                    ThemeMode.LIGHT -> R.string.theme_light
-                                    ThemeMode.DARK -> R.string.theme_dark
-                                    ThemeMode.SYSTEM -> R.string.theme_system
-                                }
-                            )
-                        )
-                    }
-                }
-            }
+            GlassChoiceRow(
+                options = ThemeMode.entries.map { mode ->
+                    stringResource(
+                        when (mode) {
+                            ThemeMode.LIGHT -> R.string.theme_light
+                            ThemeMode.DARK -> R.string.theme_dark
+                            ThemeMode.SYSTEM -> R.string.theme_system
+                        }
+                    )
+                },
+                selectedIndex = ThemeMode.entries.indexOf(settings.themeMode),
+                onSelect = { viewModel.setThemeMode(ThemeMode.entries[it]) }
+            )
             SettingLabel(stringResource(R.string.setting_gauge))
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                GaugeStyle.entries.forEachIndexed { index, style ->
-                    SegmentedButton(
-                        selected = settings.gaugeStyle == style,
-                        onClick = { viewModel.setGaugeStyle(style) },
-                        shape = SegmentedButtonDefaults.itemShape(index, GaugeStyle.entries.size)
-                    ) {
-                        Text(
-                            stringResource(
-                                if (style == GaugeStyle.ANALOG) R.string.gauge_analog
-                                else R.string.gauge_digital
-                            )
-                        )
-                    }
-                }
-            }
+            GlassChoiceRow(
+                options = GaugeStyle.entries.map { style ->
+                    stringResource(if (style == GaugeStyle.ANALOG) R.string.gauge_analog else R.string.gauge_digital)
+                },
+                selectedIndex = GaugeStyle.entries.indexOf(settings.gaugeStyle),
+                onSelect = { viewModel.setGaugeStyle(GaugeStyle.entries[it]) }
+            )
             // L'icona non e' piu' selezionabile: la dicitura chiarisce il perche'.
             Text(
                 stringResource(R.string.setting_icon_fixed),
@@ -182,34 +163,23 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             icon = Icons.Filled.Speed
         ) {
             SettingLabel(stringResource(R.string.setting_speed_unit))
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                SpeedUnit.entries.forEachIndexed { index, unit ->
-                    SegmentedButton(
-                        selected = settings.speedUnit == unit,
-                        onClick = { viewModel.setSpeedUnit(unit) },
-                        shape = SegmentedButtonDefaults.itemShape(index, SpeedUnit.entries.size)
-                    ) {
-                        Text(stringResource(if (unit == SpeedUnit.KMH) R.string.unit_kmh else R.string.unit_mph))
-                    }
-                }
-            }
+            GlassChoiceRow(
+                options = SpeedUnit.entries.map { unit ->
+                    stringResource(if (unit == SpeedUnit.KMH) R.string.unit_kmh else R.string.unit_mph)
+                },
+                selectedIndex = SpeedUnit.entries.indexOf(settings.speedUnit),
+                onSelect = { viewModel.setSpeedUnit(SpeedUnit.entries[it]) }
+            )
             SettingLabel(stringResource(R.string.setting_temp_unit))
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                TempUnit.entries.forEachIndexed { index, unit ->
-                    SegmentedButton(
-                        selected = settings.tempUnit == unit,
-                        onClick = { viewModel.setTempUnit(unit) },
-                        shape = SegmentedButtonDefaults.itemShape(index, TempUnit.entries.size)
-                    ) {
-                        Text(
-                            stringResource(
-                                if (unit == TempUnit.CELSIUS) R.string.unit_celsius
-                                else R.string.unit_fahrenheit
-                            )
-                        )
-                    }
-                }
-            }
+            GlassChoiceRow(
+                options = TempUnit.entries.map { unit ->
+                    stringResource(
+                        if (unit == TempUnit.CELSIUS) R.string.unit_celsius else R.string.unit_fahrenheit
+                    )
+                },
+                selectedIndex = TempUnit.entries.indexOf(settings.tempUnit),
+                onSelect = { viewModel.setTempUnit(TempUnit.entries[it]) }
+            )
         }
 
         SettingsSection(
@@ -233,7 +203,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 min = 5f,
                 max = 200f,
                 integer = false,
-                onChange = viewModel::setWheelDiameterCm
+                onChange = viewModel::setWheelDiameterCm,
+                unitSuffix = stringResource(R.string.unit_cm)
             )
             NumericSetting(
                 label = stringResource(R.string.setting_gear_ratio),
@@ -270,6 +241,15 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 settings.alarmEnabled,
                 viewModel::setAlarmEnabled
             )
+            NumericSetting(
+                label = stringResource(R.string.setting_auth_timeout),
+                valueText = stringResource(R.string.minutes_value, settings.authTimeoutMinutes),
+                value = settings.authTimeoutMinutes.toFloat(),
+                min = 1f,
+                max = 60f,
+                integer = true,
+                onChange = { viewModel.setAuthTimeoutMinutes(it.toInt()) }
+            )
             HorizontalDivider(Modifier.padding(vertical = 2.dp))
             SliderSetting(
                 label = stringResource(R.string.setting_rssi_threshold),
@@ -302,14 +282,34 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         }
 
         SettingsSection(
-            title = "Avvisi telemetria",
-            subtitle = "Soglie configurabili per batteria, temperatura e corrente",
+            title = stringResource(R.string.section_telemetry_alerts),
+            subtitle = stringResource(R.string.section_telemetry_alerts_subtitle),
             icon = Icons.Filled.NotificationsActive
         ) {
-            SwitchSetting("Batteria bassa", "Avvisa sotto ${settings.lowBatteryAlertPercent}%", settings.lowBatteryAlertEnabled, viewModel::setLowBatteryAlertEnabled)
-            SwitchSetting("Temperatura MOSFET", "Avvisa sopra %.0f°C".format(settings.highTemperatureAlertC), settings.highTemperatureAlertEnabled, viewModel::setHighTemperatureAlertEnabled)
-            SwitchSetting("Corrente elevata", "Avvisa sopra %.0f A".format(settings.highCurrentAlertA), settings.highCurrentAlertEnabled, viewModel::setHighCurrentAlertEnabled)
-            SwitchSetting("Tensione bassa", "Avvisa sotto %.1f V".format(settings.lowVoltageAlertV), settings.lowVoltageAlertEnabled, viewModel::setLowVoltageAlertEnabled)
+            SwitchSetting(
+                stringResource(R.string.alert_low_battery),
+                stringResource(R.string.alert_below_percent, settings.lowBatteryAlertPercent),
+                settings.lowBatteryAlertEnabled,
+                viewModel::setLowBatteryAlertEnabled
+            )
+            SwitchSetting(
+                stringResource(R.string.alert_high_temperature),
+                stringResource(R.string.alert_above_temperature, settings.highTemperatureAlertC),
+                settings.highTemperatureAlertEnabled,
+                viewModel::setHighTemperatureAlertEnabled
+            )
+            SwitchSetting(
+                stringResource(R.string.alert_high_current),
+                stringResource(R.string.alert_above_current, settings.highCurrentAlertA),
+                settings.highCurrentAlertEnabled,
+                viewModel::setHighCurrentAlertEnabled
+            )
+            SwitchSetting(
+                stringResource(R.string.alert_low_voltage),
+                stringResource(R.string.alert_below_voltage, settings.lowVoltageAlertV),
+                settings.lowVoltageAlertEnabled,
+                viewModel::setLowVoltageAlertEnabled
+            )
         }
 
         SettingsSection(
@@ -322,7 +322,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            OutlinedButton(
+            GlassButton(
                 onClick = {
                     val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
@@ -331,8 +331,10 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     }
                     runCatching { context.startActivity(intent) }
                 },
-                modifier = Modifier.padding(top = 4.dp)
-            ) { Text(stringResource(R.string.open_battery_settings)) }
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+            ) {
+                Text(stringResource(R.string.open_battery_settings), color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+            }
         }
 
         Text(
@@ -404,6 +406,7 @@ private fun SwitchSetting(
             )
         }
         Spacer(Modifier.width(8.dp))
-        Switch(checked = checked, onCheckedChange = onChange)
+        GlassSwitch(checked = checked, onCheckedChange = onChange)
+
     }
 }

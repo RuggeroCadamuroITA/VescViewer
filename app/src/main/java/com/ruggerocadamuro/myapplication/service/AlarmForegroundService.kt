@@ -5,12 +5,15 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.media.AudioAttributes
+import android.media.RingtoneManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.PowerManager
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.ruggerocadamuro.myapplication.MainActivity
@@ -41,7 +44,8 @@ class AlarmForegroundService : Service() {
     companion object {
         const val ACTION_START = "vesc.START_ALARM"
         const val ACTION_STOP = "vesc.STOP_ALARM"
-        private const val CHANNEL_ID = "alarm_monitor"
+        private const val MONITOR_CHANNEL_ID = "alarm_monitor"
+        private const val ALARM_CHANNEL_ID = "alarm_active"
         private const val NOTIF_ID = 42
         private const val WAKELOCK_TAG = "vesc:alarm_monitor"
         private const val TAG = "AlarmService"
@@ -49,7 +53,7 @@ class AlarmForegroundService : Service() {
         /** Avvio comodo dal resto dell'app. */
         fun start(context: Context) {
             val intent = Intent(context, AlarmForegroundService::class.java).setAction(ACTION_START)
-            context.startForegroundService(intent)
+            ContextCompat.startForegroundService(context, intent)
         }
 
         fun stop(context: Context) {
@@ -156,10 +160,10 @@ class AlarmForegroundService : Service() {
         } else {
             0
         }
-        ServiceCompat.startForeground(this, NOTIF_ID, buildNotification(false), type)
+        ServiceCompat.startForeground(this, NOTIF_ID, buildNotification(false, MONITOR_CHANNEL_ID), type)
     }
 
-    private fun buildNotification(alarm: Boolean): Notification {
+    private fun buildNotification(alarm: Boolean, channelId: String): Notification {
         val tapIntent = PendingIntent.getActivity(
             this,
             0,
@@ -172,7 +176,7 @@ class AlarmForegroundService : Service() {
             Intent(this, AlarmForegroundService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        return NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_stat_alarm)
             .setContentTitle(
                 getString(
@@ -204,20 +208,40 @@ class AlarmForegroundService : Service() {
         if (lastNotifiedStatus == status) return
         lastNotifiedStatus = status
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(NOTIF_ID, buildNotification(status == VescRepository.AlarmStatus.ALARM))
+        nm.notify(
+            NOTIF_ID,
+            buildNotification(
+                alarm = status == VescRepository.AlarmStatus.ALARM,
+                channelId = if (status == VescRepository.AlarmStatus.ALARM) ALARM_CHANNEL_ID else MONITOR_CHANNEL_ID
+            )
+        )
     }
 
     private fun createChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channel = NotificationChannel(
-            CHANNEL_ID,
+        val monitorChannel = NotificationChannel(
+            MONITOR_CHANNEL_ID,
             getString(R.string.alarm_notification_channel),
             NotificationManager.IMPORTANCE_LOW
         ).apply {
             description = getString(R.string.alarm_notification_channel_desc)
             setSound(null, null)
         }
-        nm.createNotificationChannel(channel)
+        val alarmChannel = NotificationChannel(
+            ALARM_CHANNEL_ID,
+            getString(R.string.alarm_active_channel),
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = getString(R.string.alarm_active_channel_desc)
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                .build()
+            setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION), audioAttributes)
+            enableVibration(true)
+        }
+        nm.createNotificationChannel(monitorChannel)
+        nm.createNotificationChannel(alarmChannel)
     }
 
     override fun onDestroy() {

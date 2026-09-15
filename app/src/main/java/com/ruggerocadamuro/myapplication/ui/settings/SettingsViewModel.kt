@@ -59,6 +59,8 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setTempUnit(unit: TempUnit) = viewModelScope.launch { repo.setTempUnit(unit) }
 
+    fun setAuthTimeoutMinutes(value: Int) = viewModelScope.launch { repo.setAuthTimeoutMinutes(value) }
+
     fun setPolePairs(value: Int) = viewModelScope.launch { repo.setPolePairs(value) }
 
     fun setWheelDiameterCm(value: Float) = viewModelScope.launch { repo.setWheelDiameterCm(value) }

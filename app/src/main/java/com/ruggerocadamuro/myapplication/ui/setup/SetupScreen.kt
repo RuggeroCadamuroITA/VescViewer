@@ -1,6 +1,11 @@
 package com.ruggerocadamuro.myapplication.ui.setup
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,6 +17,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,23 +28,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,7 +63,10 @@ import com.ruggerocadamuro.myapplication.data.settings.TempUnit
 import com.ruggerocadamuro.myapplication.data.settings.ThemeMode
 import com.ruggerocadamuro.myapplication.ui.components.AccentColorChooser
 import com.ruggerocadamuro.myapplication.ui.components.ChoiceCard
+import com.ruggerocadamuro.myapplication.ui.components.GlassButton
 import com.ruggerocadamuro.myapplication.ui.components.GlassCard
+import com.ruggerocadamuro.myapplication.ui.components.GlassOutlineButton
+import com.ruggerocadamuro.myapplication.ui.components.GlassSurface
 import com.ruggerocadamuro.myapplication.ui.components.LanguageChooser
 import com.ruggerocadamuro.myapplication.ui.components.NumericSetting
 import com.ruggerocadamuro.myapplication.ui.components.rememberLanguageApplier
@@ -87,7 +97,7 @@ private const val STEP_SUMMARY = 6
  */
 @Composable
 fun SetupScreen(viewModel: SettingsViewModel) {
-    val settings by viewModel.settings.collectAsState()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
     val applyLanguage = rememberLanguageApplier { viewModel.setLanguage(it) }
 
     var step by rememberSaveable { mutableIntStateOf(STEP_WELCOME) }
@@ -113,22 +123,34 @@ fun SetupScreen(viewModel: SettingsViewModel) {
         else -> true
     }
 
-    Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding)
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-        ) {
+    Scaffold(containerColor = androidx.compose.ui.graphics.Color.Transparent) { padding ->
+        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(padding)
+                    .imePadding()
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+            ) {
+            SetupBrandHeader(step)
             if (step > STEP_WELCOME) {
                 SetupProgressHeader(step = step, total = CONFIG_STEPS)
                 Spacer(Modifier.height(14.dp))
             }
 
-            Column(
-                modifier = Modifier.weight(1f).fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                when (step) {
+            AnimatedContent(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                targetState = step,
+                transitionSpec = {
+                    (fadeIn(animationSpec = tween(220)) + slideInHorizontally { it / 8 }) togetherWith
+                        fadeOut(animationSpec = tween(150))
+                },
+                label = "setup_step_transition"
+            ) { currentStep ->
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    when (currentStep) {
                     STEP_WELCOME -> WelcomeStep()
                     STEP_LANGUAGE -> LanguageStep(
                         selected = settings.language,
@@ -170,23 +192,65 @@ fun SetupScreen(viewModel: SettingsViewModel) {
                     )
 
                     else -> SummaryStep(settings)
+                    }
                 }
             }
 
             Spacer(Modifier.height(14.dp))
-            SetupNavigation(
-                step = step,
-                canContinue = canContinue,
-                onBack = { step-- },
-                onNext = { step++ },
-                onFinish = { viewModel.completeSetup() }
-            )
+            GlassSurface(
+                Modifier.fillMaxWidth().navigationBarsPadding(),
+                shape = RoundedCornerShape(22.dp),
+                glowColor = MaterialTheme.colorScheme.primary
+            ) {
+                Box(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+                    SetupNavigation(
+                        step = step,
+                        canContinue = canContinue,
+                        onBack = { step-- },
+                        onNext = { step++ },
+                        onFinish = { viewModel.completeSetup() }
+                    )
+                }
+            }
+            }
         }
     }
 }
 
 @Composable
+private fun SetupBrandHeader(step: Int) {
+    Row(
+        Modifier.fillMaxWidth().padding(bottom = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier.size(10.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary)
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            "VESCVIEWER",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.6.sp
+        )
+        Spacer(Modifier.weight(1f))
+        Text(
+            if (step == STEP_WELCOME) stringResource(R.string.setup_label) else stringResource(R.string.setup_config_label),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            letterSpacing = 0.8.sp
+        )
+    }
+}
+
+@Composable
 private fun SetupProgressHeader(step: Int, total: Int) {
+    val progress by animateFloatAsState(
+        targetValue = step.toFloat() / total,
+        animationSpec = tween(350),
+        label = "setup_progress"
+    )
     Column(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -197,13 +261,13 @@ private fun SetupProgressHeader(step: Int, total: Int) {
             )
             Spacer(Modifier.weight(1f))
             Text(
-                "${(step * 100) / total}%",
+                stringResource(R.string.battery_percent, (step * 100) / total),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         LinearProgressIndicator(
-            progress = { step.toFloat() / total },
+            progress = { progress },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(6.dp).clip(CircleShape)
         )
     }
@@ -212,7 +276,7 @@ private fun SetupProgressHeader(step: Int, total: Int) {
 @Composable
 private fun SetupStepTitle(title: String, description: String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         Text(
             description,
             style = MaterialTheme.typography.bodyMedium,
@@ -248,12 +312,13 @@ private fun WelcomeStep() {
             contentDescription = stringResource(R.string.app_name),
             modifier = Modifier.size(132.dp)
         )
-        Text(
-            stringResource(R.string.setup_welcome_title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
+            Text(
+                stringResource(R.string.setup_welcome_title),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
         Text(
             stringResource(R.string.setup_welcome_thanks),
             style = MaterialTheme.typography.titleMedium,
@@ -472,7 +537,8 @@ private fun VehicleStep(
         min = 5f,
         max = 200f,
         integer = false,
-        onChange = onWheel
+        onChange = onWheel,
+        unitSuffix = stringResource(R.string.unit_cm)
     )
     NumericSetting(
         label = stringResource(R.string.setting_gear_ratio),
@@ -514,28 +580,28 @@ private fun AlertsStep(
     onTemperature: (Boolean) -> Unit
 ) {
     SetupStepTitle(
-        title = "Avvisi di sicurezza",
-        description = "Ricevi un avviso quando batteria o temperatura superano una soglia importante. Potrai modificare tutto nelle impostazioni."
+        title = stringResource(R.string.setup_alerts_title),
+        description = stringResource(R.string.setup_alerts_desc)
     )
     ChoiceCard(
-        label = "Batteria bassa (%d%%)".format(settings.lowBatteryAlertPercent),
+        label = stringResource(R.string.setup_low_battery_alert, settings.lowBatteryAlertPercent),
         selected = settings.lowBatteryAlertEnabled,
         onClick = { onLowBattery(!settings.lowBatteryAlertEnabled) },
         modifier = Modifier.fillMaxWidth()
     )
     ChoiceCard(
-        label = "Temperatura MOSFET alta (%.0f°C)".format(settings.highTemperatureAlertC),
+        label = stringResource(R.string.setup_high_temperature_alert, settings.highTemperatureAlertC),
         selected = settings.highTemperatureAlertEnabled,
         onClick = { onTemperature(!settings.highTemperatureAlertEnabled) },
         modifier = Modifier.fillMaxWidth()
     )
     ChoiceCard(
-        label = "Confermo le impostazioni degli avvisi",
+        label = stringResource(R.string.setup_alerts_confirm),
         selected = confirmed,
         onClick = onConfirm,
         modifier = Modifier.fillMaxWidth()
     )
-    if (!confirmed) StepHint("Tocca la conferma per continuare")
+    if (!confirmed) StepHint(stringResource(R.string.setup_alerts_hint))
 }
 
 /* ------------------------------------------------------------------ */
@@ -563,7 +629,7 @@ private fun SummaryStep(settings: AppSettings) {
             SummaryLine(
                 stringResource(R.string.setup_summary_accent),
                 if (settings.accentColorIndex in AccentPalette.indices) {
-                    AccentPalette[settings.accentColorIndex].label
+                    AccentPalette[settings.accentColorIndex].labelRes.let { stringResource(it) }
                 } else {
                     stringResource(R.string.accent_auto)
                 }
@@ -606,7 +672,7 @@ private fun SummaryLine(label: String, value: String) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -623,39 +689,39 @@ private fun SetupNavigation(
     onFinish: () -> Unit
 ) {
     when (step) {
-        STEP_WELCOME -> Button(
+        STEP_WELCOME -> GlassButton(
             onClick = onNext,
-            modifier = Modifier.fillMaxWidth().height(52.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(stringResource(R.string.setup_start), fontSize = 16.sp)
         }
 
         STEP_SUMMARY -> Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(
+            GlassOutlineButton(
                 onClick = onBack,
-                modifier = Modifier.weight(1f).height(52.dp)
+                modifier = Modifier.weight(1f)
             ) {
                 Text(stringResource(R.string.setup_back))
             }
-            Button(
+            GlassButton(
                 onClick = onFinish,
-                modifier = Modifier.weight(1.4f).height(52.dp)
+                modifier = Modifier.weight(1.4f)
             ) {
                 Text(stringResource(R.string.setup_finish), maxLines = 1, fontSize = 13.sp)
             }
         }
 
         else -> Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(
+            GlassOutlineButton(
                 onClick = onBack,
-                modifier = Modifier.weight(1f).height(52.dp)
+                modifier = Modifier.weight(1f)
             ) {
                 Text(stringResource(R.string.setup_back))
             }
-            Button(
+            GlassButton(
                 onClick = onNext,
                 enabled = canContinue,
-                modifier = Modifier.weight(1.4f).height(52.dp)
+                modifier = Modifier.weight(1.4f)
             ) {
                 Text(stringResource(R.string.setup_next))
             }

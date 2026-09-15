@@ -299,7 +299,7 @@ object VescPacket {
                 wattHoursConsumed = whUsed,
                 tachometer = tach,
                 tachometerAbs = tachAbs
-            )
+            ).takeIf(VescTelemetry::isSane)
         } catch (_: IllegalArgumentException) {
             null
         }
@@ -351,11 +351,12 @@ object VescPacket {
         if (payload.isEmpty() || payload[0].toInt() != COMM_GET_VALUES) return null
         val dataLen = payload.size - 1
         return try {
-            if (payload.size == 74) {
+            val telemetry = if (payload.size == 74) {
                 parseModernGetValues(payload)
             } else {
                 parseLegacyGetValues(payload, dataLen)
             }
+            telemetry.takeIf(VescTelemetry::isSane)
         } catch (_: IllegalArgumentException) {
             null
         }
@@ -434,6 +435,18 @@ data class VescTelemetry(
 ) {
     /** Potenza istantanea stimata: P = V * I batteria. */
     val powerW: Float get() = voltage * currentBattery
+
+    /** Reject impossible decoded values before they reach UI, alarms, or recording. */
+    fun isSane(): Boolean = listOf(
+        tempMos, tempMotor, currentBattery, currentMotor, voltage, erpm,
+        dutyCyclePercent, ampHoursConsumed, wattHoursConsumed
+    ).all(Float::isFinite) &&
+        voltage in 0f..200f &&
+        tempMos in -50f..250f &&
+        tempMotor in -50f..250f &&
+        currentBattery in -2_000f..2_000f &&
+        currentMotor in -2_000f..2_000f &&
+        dutyCyclePercent in -110f..110f
 }
 
 /**
