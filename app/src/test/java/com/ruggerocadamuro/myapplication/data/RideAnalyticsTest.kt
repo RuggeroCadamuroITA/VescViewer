@@ -25,12 +25,13 @@ class RideAnalyticsTest {
     }
 
     @Test
-    fun nearestPointFindsClosestRecordedSample() {
+    fun nearestPointScalesLongitudeAtHighLatitude() {
         val points = listOf(
-            RidePointEntity(sessionId = 1, timestampMs = 1, latitude = 45.0, longitude = 9.0),
-            RidePointEntity(sessionId = 1, timestampMs = 2, latitude = 45.01, longitude = 9.01),
-            RidePointEntity(sessionId = 1, timestampMs = 3, latitude = 45.02, longitude = 9.02)
+            RidePointEntity(sessionId = 1, timestampMs = 1, latitude = 80.01, longitude = 0.0),
+            RidePointEntity(sessionId = 1, timestampMs = 2, latitude = 80.0, longitude = 0.02)
         )
-        assertEquals(1, RideAnalytics.nearestPointIndex(points, 45.009, 9.011))
+        // At 80 degrees north, 0.02 degrees longitude is physically closer
+        // than 0.01 degrees latitude because meridians are much narrower.
+        assertEquals(1, RideAnalytics.nearestPointIndex(points, 80.0, 0.0))
     }
 }
