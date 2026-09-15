@@ -36,6 +36,7 @@ data class AppSettings(
     val gaugeStyle: GaugeStyle = GaugeStyle.ANALOG,
     val speedUnit: SpeedUnit = SpeedUnit.KMH,
     val tempUnit: TempUnit = TempUnit.CELSIUS,
+    val authTimeoutMinutes: Int = 5,
     // parametri veicolo (per convertire ERPM -> velocita' e tachimetro -> distanza)
     val polePairs: Int = 7,                  // coppie polari del motore
     val wheelDiameterCm: Float = 25.4f,      // diametro ruota in cm (10")
@@ -75,6 +76,7 @@ class SettingsRepository(private val context: Context) {
         val GAUGE_STYLE = stringPreferencesKey("gauge_style")
         val SPEED_UNIT = stringPreferencesKey("speed_unit")
         val TEMP_UNIT = stringPreferencesKey("temp_unit")
+        val AUTH_TIMEOUT_MINUTES = intPreferencesKey("auth_timeout_minutes")
         val POLE_PAIRS = intPreferencesKey("pole_pairs")
         val WHEEL_CM = floatPreferencesKey("wheel_diameter_cm")
         val GEAR_RATIO = floatPreferencesKey("gear_ratio")
@@ -109,6 +111,7 @@ class SettingsRepository(private val context: Context) {
                 ?: SpeedUnit.KMH,
             tempUnit = prefs[Keys.TEMP_UNIT]?.let { runCatching { TempUnit.valueOf(it) }.getOrNull() }
                 ?: TempUnit.CELSIUS,
+            authTimeoutMinutes = (prefs[Keys.AUTH_TIMEOUT_MINUTES] ?: 5).coerceIn(0, 60),
             polePairs = (prefs[Keys.POLE_PAIRS] ?: 7).coerceIn(1, 30),
             wheelDiameterCm = (prefs[Keys.WHEEL_CM] ?: 25.4f).coerceIn(5f, 200f),
             gearRatio = (prefs[Keys.GEAR_RATIO] ?: 1f).coerceIn(0.1f, 50f),
@@ -158,6 +161,9 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setTempUnit(unit: TempUnit) =
         edit { it[Keys.TEMP_UNIT] = unit.name }
+
+    suspend fun setAuthTimeoutMinutes(value: Int) =
+        edit { it[Keys.AUTH_TIMEOUT_MINUTES] = value.coerceIn(0, 60) }
 
     suspend fun setPolePairs(value: Int) =
         edit { it[Keys.POLE_PAIRS] = value.coerceIn(1, 30) }
