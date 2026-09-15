@@ -1312,15 +1312,12 @@ These are maintainability concerns, not all bugs. They should be corrected in th
 
 # 22. Technical Debt
 
-- No migration strategy/schema export for Room.
-- No durable recording recovery protocol.
-- No alert-engine abstraction despite alert schema/settings.
-- No explicit transport coordinator.
-- No CI/static-analysis gate.
-- No release signing/shrinking pipeline.
-- No shared dashboard UI model/formatter layer.
-- No formal privacy/backup decision for location/auth data.
-- Build and release documentation drift.
+The following residual debt is explicitly accepted for the current release scope and is **not release-blocking**:
+
+- **A-029 — ServiceLocator migration:** constructor injection covers the recorder and map data source, while some ViewModels/services retain the application container. Complete migration is deferred until a focused architecture pass can preserve lifecycle behavior and testability.
+- **A-031 — Dashboard presentation duplication:** portrait and landscape retain separate layout arrangements with shared conversion helpers. Full UI-model/component consolidation is deferred until a dedicated dashboard refactor.
+
+Previously identified debt resolved by Phases 2–8 includes Room migration policy/schema export, durable recording checkpoints/recovery, the telemetry alert engine, BLE-only transport scope, CI/static-analysis gating, release shrinking configuration, and release documentation synchronization.
 
 # 23. Dead Code
 
@@ -1541,8 +1538,8 @@ release notes, and final physical-device smoke testing.
 | A-002 | **FIXED — PRODUCT SCOPE** | SPP code and user-facing fallback claims removed; the repository is BLE-only. Classic-only hardware is unsupported by design. |
 | A-003 | **FIXED — PRODUCT SCOPE** | The only active transport is BLE, so alarm state/RSSI no longer has an unreachable SPP branch. Physical disconnect/RSSI validation remains pending. |
 | A-014 | **FIXED** | `RideMapViewModel` now cancels the previous collector, ignores duplicate loads for the same session, and accepts an injectable points source. |
-| A-029 | **IN PROGRESS** | `RideRecorder` and `RideMapViewModel` now accept their persistence/repository dependencies, while legacy ViewModels/services still use the application container. Full migration is deferred to avoid a broad unrelated rewrite. |
-| A-031 | **IN PROGRESS** | Shared conversion helpers were added to the data layer; portrait/landscape layouts remain intentionally distinct and still contain duplicated presentation code. |
+| A-029 | **ACCEPTED TECHNICAL DEBT — NON-BLOCKING** | `RideRecorder` and `RideMapViewModel` accept injected persistence/repository dependencies; legacy ViewModels/services still use the application container. The remaining ServiceLocator migration is explicitly deferred by decision, not forgotten. |
+| A-031 | **ACCEPTED TECHNICAL DEBT — NON-BLOCKING** | Shared conversion helpers reduce drift; portrait/landscape layouts remain intentionally distinct with some duplicated presentation code. Consolidation is explicitly deferred by decision, not forgotten. |
 
 **Phase 4 verification:** targeted compile and unit tests pass. The complete lint/release gate is recorded below.
 
@@ -1603,9 +1600,17 @@ The approved Room strategy has now been applied without inventing a schema chang
 - Profiling scope is documented: measure 4 Hz telemetry collection, notification delivery, GPS recording, and long-route map overlay cost on a physical device before tuning further.
 - Privacy copy now states local-only ride storage, excluded ride/PIN backup, no cloud sharing/analytics, and local deletion expectations.
 - Release notes include the completed security, data-integrity, BLE-only, alert, map, and testing changes in `CHANGELOG.md`.
-- Phase 9 validation is captured in `RELEASE_VALIDATION.md`. It remains **CHECKLIST REQUIRED** until run on physical hardware; this is not a release-readiness declaration.
+- Phase 9 validation is captured in `RELEASE_VALIDATION.md` and the manually executable `RELEASE_VALIDATION_CHECKLIST.md`. Both remain **CHECKLIST REQUIRED** until run on physical hardware; this is not a release-readiness declaration.
 
 ## Final implementation status
 
-Phase 2–8 implementation gates pass locally. Remaining release blockers are execution-dependent: physical BLE/GPS/notification/foreground-service/process-death/rotation/network testing, TalkBack and large-font review, long-route profiling, backup behavior verification across supported OEM/API combinations, and CI workflow execution in the repository host.
+Phase 2–8 implementation gates pass locally. A-029 and A-031 are explicitly accepted, non-blocking technical debt for this release scope. Remaining release blockers are execution-dependent: physical BLE/GPS/notification/foreground-service/process-death/rotation/network testing, TalkBack and large-font review, long-route profiling, backup behavior verification across supported OEM/API combinations, and CI workflow execution in the repository host.
 
+## Android Keystore migration estimate — not implemented
+
+This is an estimate only; no Keystore code or PIN storage behavior was changed in this closure cycle.
+
+- **Complexity:** MEDIUM. The cryptographic primitive can remain PBKDF2, but key generation, authenticated encryption/wrapping, API/device capability handling, and lifecycle/error states need a focused security implementation and tests.
+- **Files likely involved:** `data/security/AuthRepository.kt`, `data/security/AuthManager.kt`, `ui/auth/AuthScreen.kt`, security-focused unit/instrumentation tests, and possibly a small new Keystore adapter under `data/security/`. Backup-rule documentation would also need review if the stored format changes.
+- **Migration risk for existing PINs:** MEDIUM. Existing PBKDF2 salt/hash records cannot be read by a new Keystore-only format unless the app performs a one-time authenticated upgrade after a successful PIN verification. Devices restored without the original Keystore key must fall back to a controlled re-enrollment path; the app must never silently accept or discard an unverifiable verifier.
+- **Recommendation:** Do not implement during release closure. Track the work as a future security follow-up to A-026 (or a new audit ID when the scope is approved); define the device-loss/reset policy, migration UX, supported API behavior, and recovery semantics first, then add device/instrumentation coverage.
