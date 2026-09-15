@@ -2,7 +2,6 @@ name: Android verification
 
 on:
   push:
-    branches: [main]
   pull_request:
 
 permissions:
@@ -22,11 +21,9 @@ jobs:
           cache: gradle
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
-      - name: Run Android quality gate
-        run: ./gradlew :app:lintDebug :app:testDebugUnitTest :app:assembleRelease --stacktrace
-      - name: Upload unsigned release artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vescviewer-release-unsigned
-          path: app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
+      - name: Run lint
+        run: ./gradlew :app:lintDebug --stacktrace
+      - name: Run unit tests
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
+      - name: Assemble release
+        run: ./gradlew :app:assembleRelease --stacktrace
