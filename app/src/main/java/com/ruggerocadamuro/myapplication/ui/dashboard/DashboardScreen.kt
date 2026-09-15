@@ -1,6 +1,8 @@
 package com.ruggerocadamuro.myapplication.ui.dashboard
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -25,21 +28,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,7 +59,10 @@ import com.ruggerocadamuro.myapplication.data.settings.TempUnit
 import com.ruggerocadamuro.myapplication.data.vesc.VescTelemetry
 import com.ruggerocadamuro.myapplication.ui.components.BleBadge
 import com.ruggerocadamuro.myapplication.ui.components.ConnectionStateChip
+import com.ruggerocadamuro.myapplication.ui.components.GlassButton
 import com.ruggerocadamuro.myapplication.ui.components.GlassCard
+import com.ruggerocadamuro.myapplication.ui.components.GlassOutlineButton
+import com.ruggerocadamuro.myapplication.ui.components.GlassSurface
 import com.ruggerocadamuro.myapplication.ui.components.HistoryChart
 import com.ruggerocadamuro.myapplication.ui.components.RssiIndicator
 import com.ruggerocadamuro.myapplication.ui.components.StatCard
@@ -84,14 +86,14 @@ fun DashboardScreen(
     onGoToScan: () -> Unit,
     recordingViewModel: RecordingViewModel
 ) {
-    val state by viewModel.connectionState.collectAsState()
-    val telemetry by viewModel.telemetry.collectAsState()
-    val history by viewModel.history.collectAsState()
-    val rssi by viewModel.rssi.collectAsState()
-    val deviceName by viewModel.deviceName.collectAsState()
-    val alarm by viewModel.alarmState.collectAsState()
-    val settings by viewModel.settings.collectAsState()
-    val recording by recordingViewModel.state.collectAsState()
+    val state by viewModel.connectionState.collectAsStateWithLifecycle()
+    val telemetry by viewModel.telemetry.collectAsStateWithLifecycle()
+    val history by viewModel.history.collectAsStateWithLifecycle()
+    val rssi by viewModel.rssi.collectAsStateWithLifecycle()
+    val deviceName by viewModel.deviceName.collectAsStateWithLifecycle()
+    val alarm by viewModel.alarmState.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val recording by recordingViewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
 
     LaunchedEffect(Unit) {
@@ -111,6 +113,9 @@ fun DashboardScreen(
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
     val isWide = configuration.screenWidthDp >= 600 && !isLandscape
+
+    val isInitialState = state == BleManager.ConnectionState.DISCONNECTED &&
+        settings.lastDeviceAddress.isEmpty() && telemetry == null
 
     // ---------------------------------------------------------------
     // Telefono ruotato: la dashboard non e' una lista che scorre ma una
@@ -136,8 +141,32 @@ fun DashboardScreen(
                         viewModel.connect(settings.lastDeviceAddress, settings.lastDeviceName)
                     },
                     onDisconnect = viewModel::disconnect,
-                    onScan = onGoToScan
+                    onScan = onGoToScan,
+                    recordingActive = recording.active,
+                    recordingPaused = recording.paused,
+                    recordingPoints = recording.pointsSaved,
+                    recordingDistanceM = recording.distanceM,
+                    onStartRecording = recordingViewModel::start,
+                    onPauseRecording = recordingViewModel::pause,
+                    onResumeRecording = recordingViewModel::resume,
+                    onStopRecording = recordingViewModel::stop
                 )
+            }
+        }
+        return
+    }
+
+    if (isInitialState) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) }
+        ) { padding ->
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                EmptyState(onGoToScan)
             }
         }
         return
@@ -151,7 +180,7 @@ fun DashboardScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+            contentPadding = PaddingValues(start = 16.dp, top = 14.dp, end = 16.dp, bottom = 112.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
@@ -179,57 +208,50 @@ fun DashboardScreen(
                 )
             }
 
-            if (state == BleManager.ConnectionState.DISCONNECTED &&
-                settings.lastDeviceAddress.isEmpty() && telemetry == null
-            ) {
-                item { EmptyState(onGoToScan) }
-            } else {
-                item {
-                    if (isWide) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            SpeedHero(telemetry, settings, Modifier.weight(1.35f))
-                            SessionSummary(telemetry, settings, Modifier.weight(0.65f))
-                        }
-                    } else {
-                        SpeedHero(telemetry, settings)
+            item {
+                if (isWide) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        SpeedHero(telemetry, settings, Modifier.weight(1.35f))
+                        SessionSummary(telemetry, settings, Modifier.weight(0.65f))
+                    }
+                } else {
+                    SpeedHero(telemetry, settings)
+                }
+            }
+
+            item {
+                SectionHeading(
+                    title = stringResource(R.string.live_metrics_title),
+                    subtitle = stringResource(R.string.live_metrics_subtitle)
+                )
+            }
+            item { LiveMetricsGrid(telemetry) }
+
+            item {
+                if (isWide) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        MosfetCard(telemetry, settings, Modifier.weight(1f))
+                        ConsumptionCard(telemetry, settings, Modifier.weight(1f))
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        MosfetCard(telemetry, settings)
+                        ConsumptionCard(telemetry, settings)
                     }
                 }
+            }
 
-                item {
-                    SectionHeading(
-                        title = stringResource(R.string.live_metrics_title),
-                        subtitle = stringResource(R.string.live_metrics_subtitle)
+            item {
+                GlassSurface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    glowColor = MaterialTheme.colorScheme.primary
+                ) {
+                    HistoryChart(
+                        points = history,
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth().padding(16.dp)
                     )
-                }
-                item { LiveMetricsGrid(telemetry) }
-
-                item {
-                    if (isWide) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            MosfetCard(telemetry, settings, Modifier.weight(1f))
-                            ConsumptionCard(telemetry, settings, Modifier.weight(1f))
-                        }
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                            MosfetCard(telemetry, settings)
-                            ConsumptionCard(telemetry, settings)
-                        }
-                    }
-                }
-
-                item {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        HistoryChart(
-                            points = history,
-                            accentColor = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.fillMaxWidth().padding(16.dp)
-                        )
-                    }
                 }
             }
         }
@@ -259,51 +281,78 @@ private fun DashboardTopBar(
             stringResource(R.string.state_disconnected) to MaterialTheme.colorScheme.error
     }
 
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Badge BLE (runa + "LE"): resta sempre leggibile, lo stato del link lo
-        // racconta gia' il chip "Connesso/Disconnesso" qui sotto.
-        BleBadge()
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.brand_label),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.4.sp
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Keep the identity row independent from the action row. A button
+            // measured beside this column used to consume its width and wrap
+            // VESCVIEWER one character per line.
+            BleBadge(
+                size = 44.dp,
+                cornerRadius = 14.dp,
+                modifier = Modifier
             )
-            Text(
-                text = deviceName ?: stringResource(R.string.no_device_selected),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ConnectionStateChip(label, color)
-                Spacer(Modifier.width(8.dp))
-                RssiIndicator(rssi, showValue = false)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.brand_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.4.sp,
+                    maxLines = 1
+                )
+                Text(
+                    text = deviceName ?: stringResource(R.string.no_device_selected),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ConnectionStateChip(label, color)
+                    Spacer(Modifier.width(8.dp))
+                    RssiIndicator(rssi, showValue = false)
+                }
             }
         }
-        when (state) {
-            BleManager.ConnectionState.CONNECTED -> OutlinedButton(onClick = onDisconnect) {
-                Text(stringResource(R.string.action_disconnect))
-            }
-            else -> {
-                if (hasLastDevice) {
-                    OutlinedButton(onClick = onConnect) {
-                        Icon(Icons.Filled.Refresh, contentDescription = null)
-                        Spacer(Modifier.width(5.dp))
-                        Text(stringResource(R.string.action_reconnect))
-                    }
-                } else {
-                    Button(onClick = onScan) {
-                        Icon(Icons.Filled.Search, contentDescription = null)
-                        Spacer(Modifier.width(5.dp))
-                        Text(stringResource(R.string.action_search))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            when (state) {
+                BleManager.ConnectionState.CONNECTED -> GlassOutlineButton(
+                    onClick = onDisconnect,
+                    compact = true,
+                    modifier = Modifier.widthIn(min = 132.dp, max = 168.dp)
+                ) {
+                    Text(stringResource(R.string.action_disconnect))
+                }
+                else -> {
+                    if (hasLastDevice) {
+                        GlassOutlineButton(
+                            onClick = onConnect,
+                            compact = true,
+                            modifier = Modifier.widthIn(min = 132.dp, max = 168.dp)
+                        ) {
+                            Icon(Icons.Filled.Refresh, contentDescription = null)
+                            Text(stringResource(R.string.action_reconnect))
+                        }
+                    } else {
+                        GlassButton(
+                            onClick = onScan,
+                            compact = true,
+                            modifier = Modifier.widthIn(min = 120.dp, max = 148.dp)
+                        ) {
+                            Icon(Icons.Filled.Search, contentDescription = null)
+                            Text(stringResource(R.string.action_search))
+                        }
                     }
                 }
             }
@@ -312,9 +361,12 @@ private fun DashboardTopBar(
 }
 
 @Composable
-private fun EmptyState(onGoToScan: () -> Unit) {
+private fun EmptyState(
+    onGoToScan: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     GlassCard(
-        modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+        modifier = modifier.fillMaxWidth(),
         glowColor = MaterialTheme.colorScheme.primary
     ) {
         Column(
@@ -323,15 +375,13 @@ private fun EmptyState(onGoToScan: () -> Unit) {
         ) {
             Box(
                 modifier = Modifier.size(72.dp).clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
                 contentAlignment = Alignment.Center
             ) {
-                // Il glifo deve usare l'"on" del contenitore: un accento chiaro
-                // su primaryContainer chiaro spariva del tutto.
                 Icon(
                     Icons.Filled.Bluetooth,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(36.dp)
                 )
             }
@@ -348,9 +398,11 @@ private fun EmptyState(onGoToScan: () -> Unit) {
                 modifier = Modifier.padding(top = 8.dp),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
-            Button(onClick = onGoToScan, modifier = Modifier.padding(top = 20.dp)) {
+            GlassButton(
+                onClick = onGoToScan,
+                modifier = Modifier.padding(top = 20.dp)
+            ) {
                 Icon(Icons.Filled.Search, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.empty_action))
             }
         }
@@ -372,6 +424,17 @@ private fun SpeedHero(
     val voltage = telemetry?.voltage
     val batteryPct = telemetry?.let { VescMath.batteryPercent(it.voltage, settings.batteryCells) }
     val batteryColor = batteryColor(batteryPct)
+
+    val animatedSpeed by animateFloatAsState(
+        targetValue = speed ?: 0f,
+        animationSpec = tween(240),
+        label = "speed_value"
+    )
+    val animatedBattery by animateFloatAsState(
+        targetValue = batteryPct?.toFloat() ?: 0f,
+        animationSpec = tween(320),
+        label = "battery_value"
+    )
 
     // La card era costruita su `primaryContainer`: con un accento chiaro il
     // contenitore diventava chiaro mentre testi e unita' restavano tinte da
@@ -421,7 +484,12 @@ private fun SpeedHero(
                     verticalAlignment = Alignment.Bottom
                 ) {
                     Text(
-                        speed?.let { "%.1f".format(it) } ?: "—",
+                        animatedSpeed.let {
+                            if (speed == null) "—" else stringResource(
+                                if (settings.speedUnit == SpeedUnit.MPH) R.string.unit_speed_mph else R.string.unit_speed_kmh,
+                                it
+                            )
+                        },
                         fontSize = 68.sp,
                         lineHeight = 72.sp,
                         fontWeight = FontWeight.Bold,
@@ -440,15 +508,16 @@ private fun SpeedHero(
                 ) {
                     HeroStat(
                         label = stringResource(R.string.label_battery),
-                        value = batteryPct?.let { "$it%" } ?: "—",
-                        detail = voltage?.let { "%.1f V".format(it) }
-                            ?: stringResource(R.string.no_data),
+                        value = if (batteryPct == null) "—" else stringResource(R.string.battery_percent, animatedBattery.toInt()),
+                        detail = voltage?.let {
+                            stringResource(R.string.unit_voltage, it) + " · " + stringResource(R.string.battery_estimate)
+                        } ?: stringResource(R.string.no_data),
                         color = batteryColor,
                         modifier = Modifier.weight(1f)
                     )
                     HeroStat(
                         label = stringResource(R.string.label_power),
-                        value = telemetry?.powerW?.let { "${it.toInt()} W" } ?: "—",
+                        value = telemetry?.powerW?.let { stringResource(R.string.unit_power, it) } ?: "—",
                         detail = telemetry?.currentBattery?.let {
                             stringResource(R.string.amps_battery, it)
                         } ?: stringResource(R.string.no_data),
@@ -478,11 +547,11 @@ private fun SessionSummary(
             )
             SummaryLine(
                 stringResource(R.string.label_pack_voltage),
-                telemetry?.voltage?.let { "%.1f V".format(it) } ?: "—"
+                telemetry?.voltage?.let { stringResource(R.string.unit_voltage, it) } ?: "—"
             )
             SummaryLine(
                 stringResource(R.string.label_battery_current),
-                telemetry?.currentBattery?.let { "%.1f A".format(it) } ?: "—"
+                telemetry?.currentBattery?.let { stringResource(R.string.unit_current, it) } ?: "—"
             )
             SummaryLine(
                 stringResource(R.string.label_erpm),
@@ -490,7 +559,7 @@ private fun SessionSummary(
             )
             SummaryLine(
                 stringResource(R.string.label_duty_cycle),
-                telemetry?.dutyCyclePercent?.let { "%.1f%%".format(it) } ?: "—"
+                telemetry?.dutyCyclePercent?.let { stringResource(R.string.unit_percent, it) } ?: "—"
             )
             Text(
                 stringResource(R.string.battery_config, settings.batteryCells),
@@ -605,7 +674,9 @@ private fun MosfetCard(
     val displayTemp = tempC?.let {
         if (settings.tempUnit == TempUnit.FAHRENHEIT) it * 9f / 5f + 32f else it
     }
-    val tempUnit = if (settings.tempUnit == TempUnit.FAHRENHEIT) "°F" else "°C"
+    val tempUnit = stringResource(
+        if (settings.tempUnit == TempUnit.FAHRENHEIT) R.string.unit_fahrenheit else R.string.unit_celsius
+    )
     val color = tempColor(
         tempC ?: 0f,
         TempThresholds.MOSFET_WARN,

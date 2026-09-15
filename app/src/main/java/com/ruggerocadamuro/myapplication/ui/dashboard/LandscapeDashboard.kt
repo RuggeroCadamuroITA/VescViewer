@@ -1,12 +1,10 @@
 package com.ruggerocadamuro.myapplication.ui.dashboard
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -19,15 +17,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,6 +51,9 @@ import com.ruggerocadamuro.myapplication.ui.components.BleBadge
 import com.ruggerocadamuro.myapplication.ui.components.BleGlyph
 import com.ruggerocadamuro.myapplication.ui.components.ConnectionStateChip
 import com.ruggerocadamuro.myapplication.ui.components.GlassCard
+import com.ruggerocadamuro.myapplication.ui.components.GlassButton
+import com.ruggerocadamuro.myapplication.ui.components.GlassIconButton
+import com.ruggerocadamuro.myapplication.ui.components.GlassOutlineButton
 import com.ruggerocadamuro.myapplication.ui.components.HistoryChart
 import com.ruggerocadamuro.myapplication.ui.components.RssiIndicator
 import com.ruggerocadamuro.myapplication.ui.components.tempColor
@@ -83,30 +83,47 @@ fun LandscapeDashboard(
     settings: AppSettings,
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
-    onScan: () -> Unit
+    onScan: () -> Unit,
+    recordingActive: Boolean,
+    recordingPaused: Boolean,
+    recordingPoints: Int,
+    recordingDistanceM: Double,
+    onStartRecording: () -> Unit,
+    onPauseRecording: () -> Unit,
+    onResumeRecording: () -> Unit,
+    onStopRecording: () -> Unit
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // Lo storico entra solo se, tolti barra e pannelli, resta spazio
         // sufficiente a non comprimere la plancia (telefoni ruotati ~360 dp:
         // niente grafico; tablet o finestre alte: grafico visibile).
         val showHistory = maxHeight >= 440.dp
+        val nothingToShow = state == BleManager.ConnectionState.DISCONNECTED &&
+            settings.lastDeviceAddress.isEmpty() && telemetry == null
 
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            LandscapeTopBar(
-                state = state,
-                deviceName = deviceName,
-                rssi = rssi,
-                hasLastDevice = settings.lastDeviceAddress.isNotEmpty(),
-                onConnect = onConnect,
-                onDisconnect = onDisconnect,
-                onScan = onScan
-            )
-
-            val nothingToShow = state == BleManager.ConnectionState.DISCONNECTED &&
-                settings.lastDeviceAddress.isEmpty() && telemetry == null
+            if (!nothingToShow) {
+                LandscapeTopBar(
+                    state = state,
+                    deviceName = deviceName,
+                    rssi = rssi,
+                    hasLastDevice = settings.lastDeviceAddress.isNotEmpty(),
+                    onConnect = onConnect,
+                    onDisconnect = onDisconnect,
+                    onScan = onScan,
+                    recordingActive = recordingActive,
+                    recordingPaused = recordingPaused,
+                    recordingPoints = recordingPoints,
+                    recordingDistanceM = recordingDistanceM,
+                    onStartRecording = onStartRecording,
+                    onPauseRecording = onPauseRecording,
+                    onResumeRecording = onResumeRecording,
+                    onStopRecording = onStopRecording
+                )
+            }
 
             if (nothingToShow) {
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -152,7 +169,15 @@ private fun LandscapeTopBar(
     hasLastDevice: Boolean,
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
-    onScan: () -> Unit
+    onScan: () -> Unit,
+    recordingActive: Boolean,
+    recordingPaused: Boolean,
+    recordingPoints: Int,
+    recordingDistanceM: Double,
+    onStartRecording: () -> Unit,
+    onPauseRecording: () -> Unit,
+    onResumeRecording: () -> Unit,
+    onStopRecording: () -> Unit
 ) {
     val connectedColor = Color(0xFF35B77A)
     val warningColor = Color(0xFFE3A63C)
@@ -168,7 +193,7 @@ private fun LandscapeTopBar(
     }
 
     Row(
-        modifier = Modifier.fillMaxWidth().height(46.dp),
+        modifier = Modifier.fillMaxWidth().height(54.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         BleBadge(size = 36.dp, cornerRadius = 12.dp)
@@ -185,20 +210,30 @@ private fun LandscapeTopBar(
         ConnectionStateChip(label, color)
         Spacer(Modifier.width(10.dp))
         RssiIndicator(rssi, showValue = true)
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(8.dp))
+        LandscapeRecordingControl(
+            active = recordingActive,
+            paused = recordingPaused,
+            points = recordingPoints,
+            distanceM = recordingDistanceM,
+            onStart = onStartRecording,
+            onPause = onPauseRecording,
+            onResume = onResumeRecording,
+            onStop = onStopRecording
+        )
+        Spacer(Modifier.width(8.dp))
         when (state) {
-            BleManager.ConnectionState.CONNECTED -> OutlinedButton(
+            BleManager.ConnectionState.CONNECTED -> GlassOutlineButton(
                 onClick = onDisconnect,
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                modifier = Modifier.height(38.dp)
+                compact = true
             ) {
                 Text(stringResource(R.string.action_disconnect), fontSize = 13.sp)
             }
 
             else -> if (hasLastDevice) {
-                OutlinedButton(
+                GlassOutlineButton(
                     onClick = onConnect,
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                    compact = true,
                     modifier = Modifier.height(38.dp)
                 ) {
                     Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -206,9 +241,9 @@ private fun LandscapeTopBar(
                     Text(stringResource(R.string.action_reconnect), fontSize = 13.sp)
                 }
             } else {
-                Button(
+                GlassButton(
                     onClick = onScan,
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                    compact = true,
                     modifier = Modifier.height(38.dp)
                 ) {
                     Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -221,6 +256,64 @@ private fun LandscapeTopBar(
 }
 
 /** Plancia compatta mostrata quando non c'e' ancora nessun dispositivo collegato. */
+@Composable
+private fun LandscapeRecordingControl(
+    active: Boolean,
+    paused: Boolean,
+    points: Int,
+    distanceM: Double,
+    onStart: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onStop: () -> Unit
+) {
+    val accent = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(accent.copy(alpha = 0.12f))
+            .padding(start = 9.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.size(7.dp).clip(CircleShape).background(accent))
+        Text(
+            if (active) stringResource(R.string.recording_compact_active, points, distanceM)
+            else stringResource(R.string.recording_compact_idle),
+            style = MaterialTheme.typography.labelSmall,
+            color = accent,
+            maxLines = 1
+        )
+        if (!active) {
+            GlassIconButton(
+                onClick = onStart,
+                icon = Icons.Filled.PlayArrow,
+                contentDescription = stringResource(R.string.recording_start_accessibility),
+                tint = accent,
+                size = 48.dp
+            )
+        } else {
+            GlassIconButton(
+                onClick = if (paused) onResume else onPause,
+                icon = if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                contentDescription = if (paused) {
+                    stringResource(R.string.recording_resume_accessibility)
+                } else {
+                    stringResource(R.string.recording_pause_accessibility)
+                },
+                tint = accent,
+                size = 48.dp
+            )
+            GlassIconButton(
+                onClick = onStop,
+                icon = Icons.Filled.Stop,
+                contentDescription = stringResource(R.string.recording_stop_accessibility),
+                tint = MaterialTheme.colorScheme.error,
+                size = 48.dp
+            )
+        }
+    }
+}
+
 @Composable
 private fun LandscapeEmptyState(onScan: () -> Unit) {
     GlassCard(
@@ -259,7 +352,7 @@ private fun LandscapeEmptyState(onScan: () -> Unit) {
                 )
             }
             Spacer(Modifier.width(24.dp))
-            Button(onClick = onScan) {
+            GlassButton(onClick = onScan, compact = true) {
                 Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(stringResource(R.string.action_scan))
@@ -337,7 +430,12 @@ private fun SpeedHeroPanel(
                     val valueSize = (maxHeight.value * 0.62f).coerceIn(28f, 64f)
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
-                            text = speed?.let { "%.1f".format(it) } ?: "—",
+                            text = speed?.let {
+                                stringResource(
+                                    if (settings.speedUnit == SpeedUnit.MPH) R.string.unit_speed_mph else R.string.unit_speed_kmh,
+                                    it
+                                )
+                            } ?: "—",
                             fontSize = valueSize.sp,
                             lineHeight = (valueSize * 1.02f).sp,
                             fontWeight = FontWeight.Bold,
@@ -359,15 +457,16 @@ private fun SpeedHeroPanel(
                 ) {
                     HeroMiniStat(
                         label = stringResource(R.string.label_battery),
-                        value = batteryPct?.let { "$it%" } ?: "—",
-                        detail = telemetry?.voltage?.let { "%.1f V".format(it) }
-                            ?: stringResource(R.string.no_data),
+                        value = batteryPct?.let { stringResource(R.string.battery_percent, it) } ?: "—",
+                        detail = telemetry?.voltage?.let {
+                            stringResource(R.string.unit_voltage, it) + " · " + stringResource(R.string.battery_estimate)
+                        } ?: stringResource(R.string.no_data),
                         color = batteryColor,
                         modifier = Modifier.weight(1f)
                     )
                     HeroMiniStat(
                         label = stringResource(R.string.label_power),
-                        value = telemetry?.powerW?.let { "${it.toInt()} W" } ?: "—",
+                        value = telemetry?.powerW?.let { stringResource(R.string.unit_power, it) } ?: "—",
                         detail = telemetry?.currentBattery?.let {
                             stringResource(R.string.amps_battery, it)
                         } ?: stringResource(R.string.no_data),
@@ -447,14 +546,14 @@ private fun ElectricMetricsPanel(
                 )
                 MetricTile(
                     stringResource(R.string.label_battery_current),
-                    telemetry?.currentBattery?.let { "%.1f".format(it) } ?: "—",
+                    telemetry?.currentBattery?.let { stringResource(R.string.unit_current, it) } ?: "—",
                     "A",
                     MaterialTheme.colorScheme.secondary,
                     Modifier.weight(1f).fillMaxHeight()
                 )
                 MetricTile(
                     stringResource(R.string.label_voltage),
-                    telemetry?.voltage?.let { "%.1f".format(it) } ?: "—",
+                    telemetry?.voltage?.let { stringResource(R.string.unit_voltage, it) } ?: "—",
                     "V",
                     MaterialTheme.colorScheme.primary,
                     Modifier.weight(1f).fillMaxHeight()
@@ -473,7 +572,7 @@ private fun ElectricMetricsPanel(
                 )
                 MetricTile(
                     stringResource(R.string.label_duty_cycle),
-                    telemetry?.dutyCyclePercent?.let { "%.1f".format(it) } ?: "—",
+                    telemetry?.dutyCyclePercent?.let { stringResource(R.string.unit_percent, it) } ?: "—",
                     "%",
                     MaterialTheme.colorScheme.primary,
                     Modifier.weight(1f).fillMaxHeight()
@@ -566,7 +665,9 @@ private fun MosfetTile(
     val displayTemp = tempC?.let {
         if (settings.tempUnit == TempUnit.FAHRENHEIT) it * 9f / 5f + 32f else it
     }
-    val unit = if (settings.tempUnit == TempUnit.FAHRENHEIT) "°F" else "°C"
+    val unit = stringResource(
+        if (settings.tempUnit == TempUnit.FAHRENHEIT) R.string.unit_fahrenheit else R.string.unit_celsius
+    )
     val color = tempColor(tempC ?: 0f, TempThresholds.MOSFET_WARN, TempThresholds.MOSFET_DANGER)
     val status = stringResource(
         when {
@@ -594,7 +695,12 @@ private fun MosfetTile(
             val valueSize = (maxHeight.value * 0.42f).coerceIn(20f, 34f)
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    displayTemp?.let { "%.1f".format(it) } ?: "—",
+                    displayTemp?.let {
+                        stringResource(
+                            if (settings.tempUnit == TempUnit.FAHRENHEIT) R.string.unit_temperature_f else R.string.unit_temperature_c,
+                            it
+                        )
+                    } ?: "—",
                     fontSize = valueSize.sp,
                     fontWeight = FontWeight.Bold,
                     color = color,

@@ -16,6 +16,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.ParcelUuid
+import android.annotation.SuppressLint
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.ruggerocadamuro.myapplication.data.vesc.VescPacket
@@ -137,7 +138,7 @@ class BleManager(private val context: Context) {
                 trySend(
                     ScanDevice(
                         address = dev.address,
-                        name = result.scanRecord?.deviceName ?: dev.name,
+                        name = result.scanRecord?.deviceName ?: deviceNameOrNull(dev),
                         rssi = result.rssi
                     )
                 )
@@ -162,9 +163,13 @@ class BleManager(private val context: Context) {
         }
     }
 
-    // ------------------------------------------------------------------
-    // CONNESSIONE
-    // ------------------------------------------------------------------
+    @SuppressLint("MissingPermission")
+    private fun deviceNameOrNull(device: BluetoothDevice): String? = try {
+        device.name
+    } catch (_: SecurityException) {
+        null
+    }
+
 
     private var gattRef: BluetoothGatt? = null
     private val gattLock = Any()
@@ -265,6 +270,7 @@ class BleManager(private val context: Context) {
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun startConnect(address: String, cont: kotlinx.coroutines.CancellableContinuation<Boolean>): Boolean {
         val a = adapter ?: return false
         if (!hasBluetoothPermissions() || !a.isEnabled) return false
@@ -705,6 +711,7 @@ class BleManager(private val context: Context) {
     }
 
     /** Un chunk con un solo retry corto se Android lo rifiuta all'avvio. */
+    @SuppressLint("MissingPermission", "WrongConstant")
     private suspend fun writeChunkWithRetry(
         gatt: BluetoothGatt,
         char: BluetoothGattCharacteristic,
@@ -716,7 +723,8 @@ class BleManager(private val context: Context) {
                 writeContinuation = cont
                 val res: Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     // API 33+: ritorna un codice di stato (0 = SUCCESS)
-                    gatt.writeCharacteristic(char, slice, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) == 0
+                    gatt.writeCharacteristic(char, slice, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) ==
+                        android.bluetooth.BluetoothStatusCodes.SUCCESS
                 } else {
                     @Suppress("DEPRECATION")
                     char.value = slice

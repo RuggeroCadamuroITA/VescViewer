@@ -1,6 +1,7 @@
 package com.ruggerocadamuro.myapplication.data.ride
 
 import com.ruggerocadamuro.myapplication.data.database.RidePointEntity
+import kotlin.math.cos
 import kotlin.math.max
 
 object RideAnalytics {
@@ -24,10 +25,11 @@ object RideAnalytics {
 
     fun nearestPointIndex(points: List<RidePointEntity>, latitude: Double, longitude: Double): Int? {
         if (points.isEmpty()) return null
+        val latitudeScale = cos(Math.toRadians(latitude)).coerceAtLeast(0.01)
         return points.indices.minByOrNull { index ->
             val point = points[index]
             val latDistance = point.latitude - latitude
-            val lonDistance = point.longitude - longitude
+            val lonDistance = (point.longitude - longitude) * latitudeScale
             latDistance * latDistance + lonDistance * lonDistance
         }
     }
