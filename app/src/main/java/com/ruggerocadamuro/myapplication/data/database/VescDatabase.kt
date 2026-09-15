@@ -5,10 +5,14 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
+/**
+ * Version 1 is the first exported schema. Future changes must increment the
+ * version and register an explicit migration before shipping.
+ */
 @Database(
     entities = [RideSessionEntity::class, RidePointEntity::class, AlertRuleEntity::class],
     version = 1,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class VescDatabase : RoomDatabase() {
     abstract fun rideDao(): RideDao
@@ -22,7 +26,7 @@ abstract class VescDatabase : RoomDatabase() {
                 context.applicationContext,
                 VescDatabase::class.java,
                 "vesc_viewer.db"
-            ).fallbackToDestructiveMigration().build().also { instance = it }
+            ).build().also { instance = it }
         }
     }
 }

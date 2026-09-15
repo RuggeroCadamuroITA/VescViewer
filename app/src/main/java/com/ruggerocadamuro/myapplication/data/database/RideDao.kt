@@ -27,6 +27,22 @@ interface RideDao {
         completed: Boolean
     )
 
+    @Query("UPDATE ride_sessions SET durationMs = :durationMs, distanceGpsM = :distanceGpsM, distanceVescM = :distanceVescM, maxGpsSpeedKmh = :maxGpsSpeedKmh, averageGpsSpeedKmh = :averageGpsSpeedKmh, maxPowerW = :maxPowerW, wattHours = :wattHours, ampHours = :ampHours WHERE id = :sessionId AND completed = 0")
+    suspend fun checkpointSession(
+        sessionId: Long,
+        durationMs: Long,
+        distanceGpsM: Double,
+        distanceVescM: Double,
+        maxGpsSpeedKmh: Float,
+        averageGpsSpeedKmh: Float,
+        maxPowerW: Float,
+        wattHours: Float,
+        ampHours: Float
+    )
+
+    @Query("UPDATE ride_sessions SET endedAtMs = COALESCE(endedAtMs, :endedAtMs), durationMs = CASE WHEN durationMs > 0 THEN durationMs ELSE MAX(0, :endedAtMs - startedAtMs) END, completed = 1 WHERE completed = 0")
+    suspend fun finalizeIncompleteSessions(endedAtMs: Long): Int
+
     @Query("SELECT * FROM ride_sessions ORDER BY startedAtMs DESC")
     fun observeSessions(): Flow<List<RideSessionEntity>>
 

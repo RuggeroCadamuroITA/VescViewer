@@ -1,0 +1,314 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "eef8a2ff0b3a089602dda8eefa930e2f",
+    "entities": [
+      {
+        "tableName": "ride_sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `startedAtMs` INTEGER NOT NULL, `endedAtMs` INTEGER, `title` TEXT NOT NULL, `distanceGpsM` REAL NOT NULL, `distanceVescM` REAL NOT NULL, `durationMs` INTEGER NOT NULL, `maxGpsSpeedKmh` REAL NOT NULL, `averageGpsSpeedKmh` REAL NOT NULL, `maxPowerW` REAL NOT NULL, `wattHours` REAL NOT NULL, `ampHours` REAL NOT NULL, `startBatteryPercent` INTEGER, `endBatteryPercent` INTEGER, `completed` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAtMs",
+            "columnName": "startedAtMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endedAtMs",
+            "columnName": "endedAtMs",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "distanceGpsM",
+            "columnName": "distanceGpsM",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "distanceVescM",
+            "columnName": "distanceVescM",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationMs",
+            "columnName": "durationMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxGpsSpeedKmh",
+            "columnName": "maxGpsSpeedKmh",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "averageGpsSpeedKmh",
+            "columnName": "averageGpsSpeedKmh",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxPowerW",
+            "columnName": "maxPowerW",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "wattHours",
+            "columnName": "wattHours",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ampHours",
+            "columnName": "ampHours",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startBatteryPercent",
+            "columnName": "startBatteryPercent",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "endBatteryPercent",
+            "columnName": "endBatteryPercent",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "completed",
+            "columnName": "completed",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "ride_points",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `timestampMs` INTEGER NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `altitudeM` REAL, `accuracyM` REAL, `gpsSpeedKmh` REAL, `vescSpeedKmh` REAL, `currentBatteryA` REAL, `currentMotorA` REAL, `voltageV` REAL, `powerW` REAL, `erpm` REAL, `mechanicalRpm` REAL, `dutyCyclePercent` REAL, `tempMosC` REAL, `ampHours` REAL, `wattHours` REAL, `distanceGpsM` REAL NOT NULL, `distanceVescM` REAL NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestampMs",
+            "columnName": "timestampMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "altitudeM",
+            "columnName": "altitudeM",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "accuracyM",
+            "columnName": "accuracyM",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "gpsSpeedKmh",
+            "columnName": "gpsSpeedKmh",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "vescSpeedKmh",
+            "columnName": "vescSpeedKmh",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "currentBatteryA",
+            "columnName": "currentBatteryA",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "currentMotorA",
+            "columnName": "currentMotorA",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "voltageV",
+            "columnName": "voltageV",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "powerW",
+            "columnName": "powerW",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "erpm",
+            "columnName": "erpm",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "mechanicalRpm",
+            "columnName": "mechanicalRpm",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "dutyCyclePercent",
+            "columnName": "dutyCyclePercent",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "tempMosC",
+            "columnName": "tempMosC",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "ampHours",
+            "columnName": "ampHours",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "wattHours",
+            "columnName": "wattHours",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "distanceGpsM",
+            "columnName": "distanceGpsM",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "distanceVescM",
+            "columnName": "distanceVescM",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_ride_points_sessionId_timestampMs",
+            "unique": false,
+            "columnNames": [
+              "sessionId",
+              "timestampMs"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ride_points_sessionId_timestampMs` ON `${TABLE_NAME}` (`sessionId`, `timestampMs`)"
+          }
+        ]
+      },
+      {
+        "tableName": "alert_rules",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`key` TEXT NOT NULL, `enabled` INTEGER NOT NULL, `threshold` REAL NOT NULL, `hysteresis` REAL NOT NULL, `debounceSeconds` INTEGER NOT NULL, `cooldownSeconds` INTEGER NOT NULL, `notificationEnabled` INTEGER NOT NULL, `vibrationEnabled` INTEGER NOT NULL, `soundEnabled` INTEGER NOT NULL, PRIMARY KEY(`key`))",
+        "fields": [
+          {
+            "fieldPath": "key",
+            "columnName": "key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enabled",
+            "columnName": "enabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "threshold",
+            "columnName": "threshold",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hysteresis",
+            "columnName": "hysteresis",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "debounceSeconds",
+            "columnName": "debounceSeconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cooldownSeconds",
+            "columnName": "cooldownSeconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notificationEnabled",
+            "columnName": "notificationEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vibrationEnabled",
+            "columnName": "vibrationEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "soundEnabled",
+            "columnName": "soundEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "key"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'eef8a2ff0b3a089602dda8eefa930e2f')"
+    ]
+  }
+}
